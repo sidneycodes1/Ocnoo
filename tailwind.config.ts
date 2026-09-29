@@ -51,9 +51,13 @@ const config: Config = {
         ],
       },
       keyframes: {
+        // Opacity-only on purpose: animating `transform` here (with fill-mode:
+        // both) would leave a non-none transform on the wrapper, which makes it
+        // the containing block for any position:fixed child (e.g. the mobile
+        // sticky Add-to-Cart bar) and stops it pinning to the viewport.
         fadeIn: {
-          from: { opacity: "0", transform: "translateY(6px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
       },
       animation: {
