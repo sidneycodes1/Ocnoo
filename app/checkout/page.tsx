@@ -149,7 +149,7 @@ export default function CheckoutPage() {
                 <span className="font-mono">{formatNaira(l.lineTotal)}</span>
               </div>
             ))}
-            <div className="mt-2 flex justify-between border-t-2 border-black pt-2 font-sans font-bold">
+            <div className="mt-2 flex justify-between border-t border-line pt-2 font-sans font-bold">
               <span>Subtotal</span>
               <span className="font-mono">{formatNaira(order.subtotal)}</span>
             </div>

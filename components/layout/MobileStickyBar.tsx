@@ -12,7 +12,7 @@ export default function MobileStickyBar({
   disabled = false,
 }: MobileStickyBarProps) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-black bg-white md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white md:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Button
           variant="primary"
