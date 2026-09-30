@@ -9,10 +9,10 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 
 // Placeholder photo frame: no real image files exist yet (added later),
-// so we render an on-brand black-bordered frame instead of a broken <img>.
+// so we render an on-brand soft-grey tile instead of a broken <img>.
 function ImageFrame() {
   return (
-    <div className="flex aspect-square w-full items-center justify-center border-b-2 border-black bg-white">
+    <div className="flex aspect-square w-full items-center justify-center bg-surface">
       <div className="flex flex-col items-center gap-2 text-black">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" />
@@ -40,22 +40,25 @@ export default function ProductCard({ product }: { product: Product }) {
 
       <Link
         href={`/product/${product.slug}`}
-        className="flex flex-col"
+        className="flex flex-1 flex-col"
         aria-label={product.name}
       >
         <ImageFrame />
-        <div className="flex flex-1 flex-col gap-1 p-3">
-          <h3 className="font-sans text-sm font-bold uppercase leading-tight">
+        <div className="flex flex-1 flex-col gap-1 p-2 md:p-3">
+          <h3 className="line-clamp-2 font-sans text-sm font-bold uppercase leading-tight">
             {product.name}
           </h3>
-          <p className="line-clamp-1 font-sans text-xs">{product.description}</p>
-          <p className="mt-auto pt-2 font-mono text-base">
+          {/* Description + Add-to-Cart are desktop-only chrome; mobile stays image-forward. */}
+          <p className="hidden line-clamp-1 font-sans text-xs md:block">
+            {product.description}
+          </p>
+          <p className="mt-auto pt-1 font-mono text-base md:pt-2">
             {formatNaira(product.price)}
           </p>
         </div>
       </Link>
 
-      <div className="mt-auto p-3 pt-0">
+      <div className="mt-auto hidden p-3 pt-0 md:block">
         <Button
           variant="secondary"
           className="w-full"

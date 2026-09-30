@@ -11,7 +11,7 @@ export default function ProductGrid({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 animate-fade-in md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 animate-fade-in md:grid-cols-3 md:gap-4 lg:grid-cols-4">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
