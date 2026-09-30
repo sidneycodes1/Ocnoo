@@ -52,7 +52,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             <span className="font-sans text-sm font-bold uppercase tracking-wide">
               Qty
             </span>
-            <div className="inline-flex items-center border-2 border-black">
+            <div className="inline-flex items-center overflow-hidden border border-line rounded-md">
               <button
                 type="button"
                 aria-label="Decrease quantity"
@@ -61,7 +61,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               >
                 &minus;
               </button>
-              <span className="flex h-11 w-12 items-center justify-center border-x-2 border-black font-mono">
+              <span className="flex h-11 w-12 items-center justify-center border-x border-line font-mono">
                 {qty}
               </span>
               <button

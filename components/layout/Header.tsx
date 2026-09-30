@@ -73,7 +73,7 @@ export default function Header() {
           >
             <CartIcon />
             {count > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center border-2 border-black bg-black px-1 text-[11px] font-bold text-white">
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-md bg-black px-1 text-[11px] font-bold text-white">
                 {count}
               </span>
             )}

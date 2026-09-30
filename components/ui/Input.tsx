@@ -1,12 +1,12 @@
 ﻿import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 
-// Shared control styling: 2px black border, zero radius, thicker border on focus,
-// no browser ring. Tokens only.
+// Shared control styling: rounded corners, thin light border, accent focus ring.
+// Tokens only.
 const base =
   "w-full min-h-[44px] px-3 py-2 bg-white text-black " +
-  "border-2 border-black rounded-none font-sans " +
-  "focus:outline-none focus:border-[3px] " +
-  "placeholder:text-black " +
+  "border border-line rounded-md font-sans " +
+  "focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 " +
+  "placeholder:text-black/40 " +
   "disabled:bg-disabled disabled:cursor-not-allowed ";
 
 interface InputAsInput extends InputHTMLAttributes<HTMLInputElement> {

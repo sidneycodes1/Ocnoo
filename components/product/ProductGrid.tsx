@@ -4,7 +4,7 @@ import ProductCard from "@/components/product/ProductCard";
 export default function ProductGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
     return (
-      <p className="border-2 border-black bg-white p-6 text-center font-sans">
+      <p className="bg-surface rounded-xl shadow-soft p-6 text-center font-sans">
         No products found in this category yet.
       </p>
     );

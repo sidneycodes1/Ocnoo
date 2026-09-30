@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-6xl animate-fade-in px-4 py-8 md:py-12">
       {/* Hero */}
-      <section className="mb-12 border-2 border-black bg-white shadow-hard">
+      <section className="mb-12 bg-white rounded-xl shadow-soft">
         <div className="px-6 py-14 text-center md:px-12 md:py-20">
           <h1 className="mx-auto max-w-3xl font-sans text-3xl font-extrabold uppercase leading-tight md:text-5xl">
             Quality Products. Great Prices. Delivered to You.

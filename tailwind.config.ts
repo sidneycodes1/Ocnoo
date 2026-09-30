@@ -7,28 +7,30 @@ const config: Config = {
     "./context/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    // Hard corners everywhere: override ALL default radii to 0.
+    // Softer, rounded corners (replaces the old all-zero override).
     borderRadius: {
       none: "0",
-      sm: "0",
-      DEFAULT: "0",
-      md: "0",
-      lg: "0",
-      xl: "0",
-      "2xl": "0",
-      "3xl": "0",
-      full: "0",
+      sm: "6px",
+      DEFAULT: "8px",
+      md: "10px",
+      lg: "12px",
+      xl: "16px",
+      "2xl": "16px",
+      "3xl": "24px",
+      full: "9999px",
     },
     extend: {
       colors: {
-        // Pure black/white are the only "real" colors; grey is disabled-only.
+        // Black/white led, one warm accent for CTAs/active states, two greys.
+        accent: "#F5A623",
+        surface: "#F5F5F5",
+        line: "#EAEAEA",
         disabled: "#D9D9D9",
       },
       boxShadow: {
-        // Signature hard, zero-blur offset shadows.
-        hard: "4px 4px 0px #000000",
-        "hard-hover": "6px 6px 0px #000000",
-        "hard-press": "0px 0px 0px #000000",
+        // Soft, diffused elevation (replaces the old hard-offset shadows).
+        soft: "0 2px 8px rgba(0,0,0,0.08)",
+        "soft-hover": "0 4px 16px rgba(0,0,0,0.12)",
       },
       fontFamily: {
         // Sharp geometric sans for all headings/body.

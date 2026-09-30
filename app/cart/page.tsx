@@ -49,7 +49,7 @@ export default function CartPage() {
                 {/* Thumbnail (placeholder frame) */}
                 <Link
                   href={`/product/${product.slug}`}
-                  className="flex h-20 w-20 shrink-0 items-center justify-center border-2 border-black"
+                  className="flex h-20 w-20 shrink-0 items-center justify-center border border-line rounded-lg"
                   aria-label={product.name}
                 >
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -71,7 +71,7 @@ export default function CartPage() {
                   </p>
 
                   <div className="mt-2 flex items-center gap-3">
-                    <div className="inline-flex items-center border-2 border-black">
+                    <div className="inline-flex items-center overflow-hidden border border-line rounded-md">
                       <button
                         type="button"
                         aria-label="Decrease quantity"
@@ -80,7 +80,7 @@ export default function CartPage() {
                       >
                         &minus;
                       </button>
-                      <span className="flex h-9 w-10 items-center justify-center border-x-2 border-black font-mono text-sm">
+                      <span className="flex h-9 w-10 items-center justify-center border-x border-line font-mono text-sm">
                         {quantity}
                       </span>
                       <button

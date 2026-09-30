@@ -45,7 +45,7 @@ export default function TrackOrderPage() {
       </form>
 
       {result === "notfound" && (
-        <p className="mt-6 border-2 border-black bg-white p-4 font-sans font-bold">
+        <p className="mt-6 bg-surface rounded-xl shadow-soft p-4 font-sans font-bold">
           We couldn&apos;t find that order.
         </p>
       )}
@@ -63,7 +63,7 @@ export default function TrackOrderPage() {
                   <div className="flex flex-col items-center">
                     <span
                       className={
-                        "flex h-6 w-6 shrink-0 items-center justify-center border-2 border-black " +
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line " +
                         (done ? "bg-black text-white" : "bg-white")
                       }
                       aria-hidden="true"

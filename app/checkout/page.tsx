@@ -133,7 +133,7 @@ export default function CheckoutPage() {
             and nothing was actually sold.
           </p>
 
-          <div className="mt-6 border-2 border-black p-4">
+          <div className="mt-6 bg-surface rounded-xl p-4">
             <p className="font-sans text-sm uppercase tracking-wide">
               Order number
             </p>
@@ -247,8 +247,8 @@ export default function CheckoutPage() {
           <div
             key={n}
             className={
-              "h-2 flex-1 border-2 border-black " +
-              (step >= n ? "bg-black" : "bg-white")
+              "h-2 flex-1 rounded-full " +
+              (step >= n ? "bg-accent" : "bg-disabled")
             }
           />
         ))}
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
             <select
               value={delivery.state}
               onChange={(e) => setDelivery({ ...delivery, state: e.target.value })}
-              className="w-full min-h-[44px] rounded-none border-2 border-black bg-white px-3 py-2 font-sans focus:border-[3px] focus:outline-none"
+              className="w-full min-h-[44px] rounded-md border border-line bg-white px-3 py-2 font-sans focus:border-accent focus:ring-2 focus:ring-accent/40 focus:outline-none"
             >
               <option value="">Select a state…</option>
               {NG_STATES.map((s) => (
@@ -322,10 +322,10 @@ export default function CheckoutPage() {
               onClick={() => setPayment("paystack")}
               aria-pressed={payment === "paystack"}
               className={
-                "flex items-center gap-4 border-2 border-black p-4 text-left transition-all " +
+                "flex items-center gap-4 rounded-xl p-4 text-left transition-all shadow-soft hover:shadow-soft-hover " +
                 (payment === "paystack"
-                  ? "bg-black text-white shadow-hard"
-                  : "bg-white text-black shadow-hard hover:shadow-hard-hover hover:-translate-x-[2px] hover:-translate-y-[2px]")
+                  ? "bg-accent text-black"
+                  : "bg-white text-black border border-line")
               }
             >
               <CardIcon />
@@ -339,10 +339,10 @@ export default function CheckoutPage() {
               onClick={() => setPayment("transfer")}
               aria-pressed={payment === "transfer"}
               className={
-                "flex items-center gap-4 border-2 border-black p-4 text-left transition-all " +
+                "flex items-center gap-4 rounded-xl p-4 text-left transition-all shadow-soft hover:shadow-soft-hover " +
                 (payment === "transfer"
-                  ? "bg-black text-white shadow-hard"
-                  : "bg-white text-black shadow-hard hover:shadow-hard-hover hover:-translate-x-[2px] hover:-translate-y-[2px]")
+                  ? "bg-accent text-black"
+                  : "bg-white text-black border border-line")
               }
             >
               <BankIcon />

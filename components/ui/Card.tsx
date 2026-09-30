@@ -4,7 +4,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-// White surface, 2px black border, hard shadow, zero radius, press physics on hover.
+// White surface, rounded corners, soft diffused shadow that lifts on hover.
 // Tokens only — no hex/shadow literals.
 export default function Card({
   className = "",
@@ -14,9 +14,8 @@ export default function Card({
   return (
     <div
       className={
-        "bg-white border-2 border-black rounded-none shadow-hard " +
-        "transition-all duration-100 ease-out " +
-        "hover:shadow-hard-hover hover:-translate-x-[2px] hover:-translate-y-[2px] " +
+        "bg-white rounded-xl shadow-soft " +
+        "transition-all duration-150 ease-out hover:shadow-soft-hover " +
         className
       }
       {...props}

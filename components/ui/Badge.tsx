@@ -4,8 +4,8 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   children: ReactNode;
 }
 
-// Solid black background, white text. Used for New / Deal / Pre-Order.
-// No color, no shadow — pure token-based fill.
+// Solid black background, white text by default; pass bg-accent via className
+// for a highlight (e.g. Deal). Rounded, token-based fill.
 export default function Badge({
   className = "",
   children,
@@ -14,7 +14,7 @@ export default function Badge({
   return (
     <span
       className={
-        "inline-block bg-black text-white rounded-none " +
+        "inline-block bg-black text-white rounded-md " +
         "px-2 py-0.5 text-xs font-bold uppercase tracking-wide " +
         className
       }

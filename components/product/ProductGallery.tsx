@@ -12,7 +12,7 @@ export default function ProductGallery({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex aspect-square w-full items-center justify-center border-2 border-black bg-white shadow-hard">
+      <div className="flex aspect-square w-full items-center justify-center bg-surface rounded-xl shadow-soft">
         <div className="flex flex-col items-center gap-3 text-black">
           <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" />
@@ -34,7 +34,7 @@ export default function ProductGallery({ product }: { product: Product }) {
               onClick={() => setActive(i)}
               aria-label={`View image ${i + 1}`}
               className={
-                "flex aspect-square items-center justify-center border-2 border-black " +
+                "flex aspect-square items-center justify-center rounded-lg border border-line " +
                 (i === active ? "bg-black text-white" : "bg-white text-black")
               }
             >
