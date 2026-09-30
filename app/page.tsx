@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { products } from "@/data/products";
 import { categories } from "@/data/categories";
-import ProductGrid from "@/components/product/ProductGrid";
+import ProductRow from "@/components/sections/ProductRow";
+import HorizontalScrollRow from "@/components/sections/HorizontalScrollRow";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
-// Featured = first 8 products in the dataset.
-const FEATURED = products.slice(0, 8);
+// Carouselled home sections draw from the front of the dataset; "Just In"
+// shows the next slice so the two rows don't repeat the same items.
+const POPULAR = products.slice(0, 8);
+const JUST_IN = products.slice(8, 16);
 
 export default function HomePage() {
   return (
@@ -29,31 +32,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="mb-12">
-        <h2 className="mb-4 font-sans text-2xl font-bold uppercase tracking-tight">
-          Shop by Category
-        </h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {categories.map((cat) => (
-            <Link key={cat.id} href={`/shop/${cat.slug}`} className="h-full">
-              <Card className="flex h-full items-center justify-center p-4 text-center">
-                <span className="font-sans text-sm font-bold uppercase tracking-wide">
-                  {cat.name}
-                </span>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* Categories — swipeable pill row on mobile, wraps on larger screens */}
+      <HorizontalScrollRow
+        title="Shop by Category"
+        viewAllHref="/shop"
+        itemClassName="w-[60%] sm:w-[38%] md:w-[30%] lg:w-[23%]"
+        items={categories.map((cat) => (
+          <Link key={cat.id} href={`/shop/${cat.slug}`} className="block h-full">
+            <Card className="flex h-full min-h-[72px] items-center justify-center p-4 text-center">
+              <span className="font-sans text-sm font-bold uppercase tracking-wide">
+                {cat.name}
+              </span>
+            </Card>
+          </Link>
+        ))}
+      />
 
-      {/* Featured products */}
-      <section>
-        <h2 className="mb-4 font-sans text-2xl font-bold uppercase tracking-tight">
-          Featured Products
-        </h2>
-        <ProductGrid products={FEATURED} />
-      </section>
+      {/* Product carousels */}
+      <ProductRow title="Popular Right Now" products={POPULAR} viewAllHref="/shop" />
+      <ProductRow title="Just In" products={JUST_IN} viewAllHref="/shop" />
     </div>
   );
 }

@@ -13,6 +13,9 @@
 /.next/
 /out/
 
+# local dev server log (detached npm run dev redirect)
+dev.log
+
 # production
 /build
 

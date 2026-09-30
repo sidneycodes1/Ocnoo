@@ -7,3 +7,14 @@
     @apply bg-white text-black font-sans antialiased;
   }
 }
+
+@layer utilities {
+  /* Horizontal snap rows scroll cleanly without a visible scrollbar. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
