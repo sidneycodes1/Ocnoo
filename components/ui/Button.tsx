@@ -38,7 +38,10 @@ export default function Button(props: ButtonProps) {
   const classes = `${base} ${variants[variant]} ${className}`;
 
   if (props.href !== undefined) {
-    const { href, ...rest } = props;
+    // Strip className/variant/children from `rest` BEFORE spreading, otherwise
+    // the caller's className overrides the merged base+variant classes and the
+    // `variant` prop leaks to the DOM as an invalid attribute.
+    const { href, variant: _v, className: _c, children: _ch, ...rest } = props;
     return (
       <Link href={href} className={classes} {...rest}>
         {children}
