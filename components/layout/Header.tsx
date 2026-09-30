@@ -147,14 +147,15 @@ export default function Header() {
             )}
           </Button>
 
-          {/* Hamburger for tablet/mobile nav */}
+          {/* Hamburger nav toggle (all widths — the only menu now that the
+              desktop nav row is gone) */}
           <Button
             type="button"
             variant="secondary"
             aria-label="Toggle menu"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="h-11 w-11 shrink-0 !p-0 lg:hidden"
+            className="h-11 w-11 shrink-0 !p-0"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               {open ? (
@@ -172,25 +173,11 @@ export default function Header() {
         <SearchBar />
       </div>
 
-      {/* Desktop nav row (lg+) */}
-      <nav aria-label="Primary" className="hidden border-t border-line lg:block">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-2">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="font-sans text-sm font-bold uppercase tracking-wide hover:text-accent hover:underline hover:underline-offset-4"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
-
-      {/* Collapsible nav for < lg */}
+      {/* Collapsible nav (all widths) */}
       {open && (
-        <nav aria-label="Mobile" className="border-t border-line bg-white lg:hidden">
-          <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 py-4">
+        <nav aria-label="Main" className="border-t border-line bg-white">
+          {/* Account shortcuts: menu-only below md; inline in the top row above that */}
+          <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 py-4 md:hidden">
             {ACCOUNT_LINKS.map((l) => (
               <Link
                 key={l.href}
