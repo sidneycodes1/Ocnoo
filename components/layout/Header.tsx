@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import Button from "@/components/ui/Button";
+import {
+  BookmarkIcon,
+  MessagesIcon,
+  NotificationsIcon,
+  AccountIcon,
+} from "@/components/ui/icons";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -83,6 +89,14 @@ function SearchBar({ className = "" }: { className?: string }) {
   );
 }
 
+// Placeholder account cluster (no real auth — links to empty-state pages).
+const ACCOUNT_LINKS = [
+  { href: "/saved", label: "Saved", icon: <BookmarkIcon /> },
+  { href: "/messages", label: "Messages", icon: <MessagesIcon /> },
+  { href: "/notifications", label: "Notifications", icon: <NotificationsIcon /> },
+  { href: "/account", label: "Account", icon: <AccountIcon /> },
+];
+
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { count } = useCart();
@@ -107,6 +121,18 @@ export default function Header() {
         <SearchBar className="hidden md:block md:w-72 md:max-w-md lg:flex-1" />
 
         <div className="ml-auto flex items-center gap-3 md:ml-0">
+          {ACCOUNT_LINKS.map((l) => (
+            <Button
+              key={l.href}
+              href={l.href}
+              variant="secondary"
+              aria-label={l.label}
+              className="hidden h-11 w-11 shrink-0 !p-0 md:inline-flex"
+            >
+              {l.icon}
+            </Button>
+          ))}
+
           <Button
             href="/cart"
             variant="secondary"
@@ -164,7 +190,22 @@ export default function Header() {
       {/* Collapsible nav for < lg */}
       {open && (
         <nav aria-label="Mobile" className="border-t border-line bg-white lg:hidden">
-          <ul className="mx-auto flex max-w-6xl flex-col px-4">
+          <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 py-4">
+            {ACCOUNT_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="flex flex-col items-center gap-1.5 rounded-lg border border-line py-3 text-center hover:bg-surface"
+              >
+                {l.icon}
+                <span className="font-sans text-xs font-bold uppercase">
+                  {l.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <ul className="mx-auto flex max-w-6xl flex-col border-t border-line px-4">
             {NAV_LINKS.map((link) => (
               <li key={link.label} className="border-b border-line last:border-b-0">
                 <Link
