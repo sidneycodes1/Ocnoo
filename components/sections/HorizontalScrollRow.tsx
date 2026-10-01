@@ -1,13 +1,11 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 interface HorizontalScrollRowProps {
   id?: string;
   title: string;
-  viewAllHref?: string;
   items: ReactNode[];
   itemClassName?: string;
 }
@@ -17,7 +15,6 @@ interface HorizontalScrollRowProps {
 export default function HorizontalScrollRow({
   id,
   title,
-  viewAllHref,
   items,
   itemClassName = "w-[43%] md:w-[30%] lg:w-[23%]",
 }: HorizontalScrollRowProps) {
@@ -61,14 +58,6 @@ export default function HorizontalScrollRow({
               </svg>
             </Button>
           </div>
-          {viewAllHref && (
-            <Link
-              href={viewAllHref}
-              className="font-sans text-xs font-bold uppercase tracking-wide hover:underline hover:underline-offset-4"
-            >
-              View all
-            </Link>
-          )}
         </div>
       </div>
       <div

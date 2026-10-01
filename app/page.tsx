@@ -16,7 +16,6 @@ export default function HomePage() {
       {/* Categories — swipeable pill row on mobile, wraps on larger screens */}
       <HorizontalScrollRow
         title="Shop by Category"
-        viewAllHref="/shop"
         itemClassName="w-[60%] sm:w-[38%] md:w-[30%] lg:w-[23%]"
         items={categories.map((cat) => (
           <Link key={cat.id} href={`/shop/${cat.slug}`} className="block h-full">
@@ -30,8 +29,8 @@ export default function HomePage() {
       />
 
       {/* Product carousels */}
-      <ProductRow title="Popular Right Now" products={POPULAR} viewAllHref="/shop" />
-      <ProductRow title="Just In" products={JUST_IN} viewAllHref="/shop" />
+      <ProductRow title="Popular Right Now" products={POPULAR} />
+      <ProductRow title="Just In" products={JUST_IN} />
     </div>
   );
 }
