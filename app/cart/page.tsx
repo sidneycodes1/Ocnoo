@@ -62,48 +62,51 @@ export default function CartPage() {
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/product/${product.slug}`}
-                    className="block truncate font-sans text-sm font-bold uppercase hover:underline hover:underline-offset-4"
+                    className="flex min-h-[44px] items-center truncate font-sans text-sm font-bold uppercase hover:underline hover:underline-offset-4"
                   >
                     {product.name}
                   </Link>
                   <p className="mt-1 font-mono text-sm">
                     {formatNaira(product.price)}
                   </p>
-
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="inline-flex items-center overflow-hidden border border-line rounded-md">
-                      <button
-                        type="button"
-                        aria-label="Decrease quantity"
-                        onClick={() => updateQuantity(product.id, quantity - 1)}
-                        className="h-9 w-9 text-lg font-bold hover:bg-black hover:text-white"
-                      >
-                        &minus;
-                      </button>
-                      <span className="flex h-9 w-10 items-center justify-center border-x border-line font-mono text-sm">
-                        {quantity}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Increase quantity"
-                        onClick={() => updateQuantity(product.id, quantity + 1)}
-                        className="h-9 w-9 text-lg font-bold hover:bg-black hover:text-white"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removeItem(product.id)}
-                      className="font-sans text-xs font-bold uppercase tracking-wide underline underline-offset-4 hover:bg-black hover:text-white"
-                    >
-                      Remove
-                    </button>
-                  </div>
                 </div>
 
                 <p className="shrink-0 font-mono text-base">{formatNaira(lineTotal)}</p>
+              </div>
+
+              {/* Quantity/remove controls span the full card width. Nested inside
+                  the text column they collided with the line total at 320px: the
+                  44px stepper is a fixed 130px and cannot shrink to a 98px column. */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div className="inline-flex shrink-0 items-center overflow-hidden border border-line rounded-md">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    onClick={() => updateQuantity(product.id, quantity - 1)}
+                    className="h-11 w-11 shrink-0 text-lg font-bold hover:bg-black hover:text-white"
+                  >
+                    &minus;
+                  </button>
+                  <span className="flex h-11 w-10 shrink-0 items-center justify-center border-x border-line font-mono text-sm">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    onClick={() => updateQuantity(product.id, quantity + 1)}
+                    className="h-11 w-11 shrink-0 text-lg font-bold hover:bg-black hover:text-white"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeItem(product.id)}
+                  className="inline-flex min-h-[44px] items-center px-1 font-sans text-xs font-bold uppercase tracking-wide underline underline-offset-4 hover:bg-black hover:text-white"
+                >
+                  Remove
+                </button>
               </div>
             </Card>
           </li>

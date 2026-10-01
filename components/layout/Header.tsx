@@ -102,12 +102,14 @@ export default function Header() {
   const { count } = useCart();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white">
+    // z-50 keeps the header (and its open menu) above the z-40 floating CTA,
+    // so the FAB cannot cover the last menu row on narrow/short screens.
+    <header className="sticky top-0 z-50 border-b border-line bg-white">
       {/* Top row: logo, inline search (md+), cart, hamburger */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link
           href="/"
-          className="flex shrink-0 flex-col leading-none"
+          className="flex min-h-[44px] shrink-0 flex-col justify-center leading-none"
           onClick={() => setOpen(false)}
         >
           <span className="font-sans text-2xl font-extrabold uppercase tracking-tight">

@@ -101,7 +101,7 @@ export default function Footer() {
                 target={social.href.startsWith("http") ? "_blank" : undefined}
                 rel={social.href.startsWith("http") ? "noopener noreferrer" : undefined}
                 aria-label={social.label}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-black transition-colors hover:border-accent hover:bg-accent"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-line text-black transition-colors hover:border-accent hover:bg-accent"
               >
                 {social.icon}
               </a>

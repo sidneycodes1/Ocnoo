@@ -24,7 +24,7 @@ export default function ProductPage({ params }: Props) {
       <div className="mx-auto max-w-6xl px-4 pt-6">
         <Link
           href="/shop"
-          className="font-sans text-sm font-bold uppercase tracking-wide hover:underline hover:underline-offset-4"
+          className="inline-flex min-h-[44px] items-center font-sans text-sm font-bold uppercase tracking-wide hover:underline hover:underline-offset-4"
         >
           &larr; Back to Shop
         </Link>
