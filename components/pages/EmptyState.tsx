@@ -22,7 +22,9 @@ export default function EmptyState({
           {icon}
         </div>
       )}
-      <h1 className="font-sans text-2xl font-extrabold uppercase tracking-tight">
+      {/* Title is announced on mobile (the screen header shows it visually);
+          from md up it is the visible heading again. */}
+      <h1 className="font-sans text-2xl font-extrabold uppercase tracking-tight sr-only md:not-sr-only">
         {title}
       </h1>
       {description && (

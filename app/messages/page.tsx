@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import EmptyState from "@/components/pages/EmptyState";
 import { MessagesIcon } from "@/components/ui/icons";
+import { privateMeta } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Messages — OCNOO Online Store",
-};
+export const metadata: Metadata = privateMeta("Messages");
 
 export default function MessagesPage() {
   return (

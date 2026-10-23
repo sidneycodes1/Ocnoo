@@ -1,13 +1,31 @@
 ﻿"use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { formatNaira } from "@/lib/utils";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
+import PriceTag from "@/components/ui/PriceTag";
+import ProductListRow from "@/components/product/ProductListRow";
+import { TrashIcon } from "@/components/ui/icons";
+
+/**
+ * Up to 20 choices, but never more than the line can actually be: the list is
+ * capped by real stock when the row declares it, and floored at the quantity
+ * already in the cart so the current value is always selectable.
+ */
+function qtyOptions(current: number, stock?: number): string[] {
+  const cap = stock === undefined ? 20 : Math.min(stock, 20);
+  const top = Math.max(current, cap);
+  return Array.from({ length: top }, (_, i) => String(i + 1));
+}
 
 export default function CartPage() {
   const { lines, subtotal, updateQuantity, removeItem, hydrated } = useCart();
+  // Which row has its delete panel revealed. Only one at a time.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   if (!hydrated) {
     return (
@@ -37,11 +55,103 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 font-sans text-3xl font-extrabold uppercase tracking-tight">
+      <h1 className="mb-6 font-sans text-3xl font-extrabold uppercase tracking-tight sr-only md:not-sr-only">
         Your Cart
       </h1>
 
-      <ul className="flex animate-fade-in flex-col gap-4">
+      {/* ---- MOBILE: reference rows with reveal-to-delete ---------------- */}
+      {/* Each row titles itself with <h3>. This block only renders below md, so
+          the heading is screen-reader-only and is hidden at md+ together with
+          the rows it heads - it must not sit in the desktop outline. */}
+      <h2 className="sr-only md:hidden">Items in your cart</h2>
+      <ul className="-mx-4 border-y border-line bg-white md:hidden">
+        {lines.map(({ product, quantity, lineTotal }) => {
+          const open = openId === product.id;
+          return (
+            <li
+              key={product.id}
+              className="relative overflow-hidden border-b border-line last:border-b-0"
+            >
+              {/* The destructive layer sits underneath the row content. It is
+                  deliberately square — the only non-rounded surface in the
+                  mobile shell. */}
+              <div className="absolute inset-y-0 right-0 flex w-24 items-center justify-center bg-danger">
+                <button
+                  type="button"
+                  aria-label={`Confirm remove ${product.name} from cart`}
+                  onClick={() => {
+                    removeItem(product.id);
+                    setOpenId(null);
+                  }}
+                  className="flex h-full w-full items-center justify-center text-white"
+                >
+                  <TrashIcon size={24} />
+                </button>
+              </div>
+
+              <div
+                className={
+                  "relative bg-white transition-transform duration-200 " +
+                  (open ? "-translate-x-24" : "translate-x-0")
+                }
+              >
+                <ProductListRow
+                  product={product}
+                  divider={false}
+                  trailing={<PriceTag price={lineTotal} tone="shell" size="sm" />}
+                />
+                <div className="flex items-center justify-between gap-3 px-3 pb-3">
+                  <label className="flex items-center gap-2 font-sans text-xs uppercase tracking-wide text-black/50">
+                    Qty
+                    <Select
+                      fullWidth={false}
+                      placeholder={null}
+                      aria-label={`Quantity of ${product.name}`}
+                      options={qtyOptions(quantity, product.stockQty)}
+                      value={String(quantity)}
+                      className="min-h-[44px] w-auto py-1 text-sm"
+                      onChange={(e) =>
+                        updateQuantity(product.id, Number(e.target.value))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(open ? null : product.id)}
+                    className="inline-flex min-h-[44px] items-center px-2 font-sans text-xs font-bold uppercase tracking-wide underline underline-offset-4"
+                  >
+                    {open ? "Cancel" : "Remove"}
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-6 md:hidden">
+        <div className="flex items-center justify-between font-sans text-base">
+          <span>Subtotal</span>
+          <PriceTag price={subtotal} tone="shell" />
+        </div>
+        <p className="mt-2 font-sans text-xs leading-relaxed text-black/50">
+          Delivery is confirmed at checkout once you enter your state, and is
+          shown before you pay.
+        </p>
+        {/* Full-width stack: at 320px two side-by-side pills wrapped their
+            labels onto a second line. This block is mobile-only (md:hidden). */}
+        <div className="mt-4 flex flex-col gap-3">
+          <Button href="/shop" variant="secondary" shape="pill" labelCase="none" className="w-full">
+            Continue Shopping
+          </Button>
+          <Button href="/checkout" variant="primary" shape="pill" tone="primary" labelCase="none" className="w-full">
+            Checkout
+          </Button>
+        </div>
+      </div>
+
+      {/* ---- DESKTOP: unchanged from before the mobile shell -------------- */}
+      <ul className="hidden animate-fade-in flex-col gap-4 md:flex">
         {lines.map(({ product, quantity, lineTotal }) => (
           <li key={product.id}>
             <Card className="p-3">
@@ -113,7 +223,7 @@ export default function CartPage() {
         ))}
       </ul>
 
-      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-8 hidden flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:flex">
         <p className="font-sans text-lg">
           Subtotal:{" "}
           <span className="font-mono font-bold">{formatNaira(subtotal)}</span>

@@ -1,5 +1,5 @@
 // Shared layout for static informational / legal placeholder pages.
-// Keeps the Footer's linked pages consistent without duplicating markup.
+// Keeps the legal pages consistent without duplicating markup.
 export interface InfoSection {
   heading: string;
   body: string[];
@@ -20,7 +20,9 @@ export default function InfoPage({
 }: InfoPageProps) {
   return (
     <div className="mx-auto max-w-3xl animate-fade-in px-4 py-10">
-      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl">
+      {/* The mobile screen header already shows the document title, so the
+          heading is announced but not repeated visually below md. */}
+      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl sr-only md:not-sr-only">
         {title}
       </h1>
       {updated && (

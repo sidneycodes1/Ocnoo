@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import Card from "@/components/ui/Card";
 
 export interface FormFieldConfig {
@@ -66,25 +67,21 @@ export default function ApplicationForm({
             </span>
 
             {f.type === "select" ? (
-              <select
+              <Select
+                options={f.options ?? []}
+                placeholder="Select…"
+                aria-invalid={showRequiredError || undefined}
                 value={values[f.name] ?? ""}
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [f.name]: e.target.value }))
                 }
-                className="w-full min-h-[44px] rounded-md border border-line bg-white px-3 py-2 font-sans focus:border-accent focus:ring-2 focus:ring-accent/40 focus:outline-none"
-              >
-                <option value="">Select…</option>
-                {(f.options ?? []).map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
+              />
             ) : f.type === "textarea" ? (
               <Input
                 multiline
                 rows={f.rows ?? 4}
                 placeholder={f.placeholder}
+                aria-invalid={showRequiredError || undefined}
                 value={values[f.name] ?? ""}
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [f.name]: e.target.value }))
@@ -94,6 +91,7 @@ export default function ApplicationForm({
               <Input
                 type={f.type ?? "text"}
                 placeholder={f.placeholder}
+                aria-invalid={showRequiredError || undefined}
                 value={values[f.name] ?? ""}
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [f.name]: e.target.value }))
@@ -102,7 +100,7 @@ export default function ApplicationForm({
             )}
 
             {showRequiredError && (
-              <span className="font-sans text-sm font-bold">Required field.</span>
+              <span role="alert" className="font-sans text-sm font-bold">Required field.</span>
             )}
           </label>
         );

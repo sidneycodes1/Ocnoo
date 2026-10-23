@@ -16,10 +16,28 @@ const CATEGORY_OPTIONS = [
   "Household Products",
 ];
 
+// The reference supplied only the first step's label. These three describe what
+// actually happens on this site: the form, the terms our team shares, and the
+// split of work the intro paragraphs above already promise.
+const STEPS = [
+  {
+    title: "List your item",
+    body: "Apply below with your name, how to reach you and the categories you want to sell.",
+  },
+  {
+    title: "We agree the terms",
+    body: "Our team shares the reseller terms and margins, and gets you started with the catalogue.",
+  },
+  {
+    title: "You sell, we deliver",
+    body: "Market products to your own network and earn your margin on completed sales — OCNOO handles stock and fulfilment.",
+  },
+];
+
 export default function BecomeAResellerPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl">
+      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl sr-only md:not-sr-only">
         Become an OCNOO Reseller
       </h1>
 
@@ -35,6 +53,32 @@ export default function BecomeAResellerPage() {
           terms and margins.
         </p>
       </div>
+
+      {/* Numbered path from the reference document: one card per step, three
+          across at sm and up, stacked on mobile. */}
+      <section className="mt-8" aria-labelledby="how-it-works">
+        <h2
+          id="how-it-works"
+          className="font-sans text-xl font-extrabold uppercase tracking-tight"
+        >
+          How it works
+        </h2>
+        <ol className="mt-4 grid gap-4 sm:grid-cols-3">
+          {STEPS.map((step, i) => (
+            <li key={step.title}>
+              <Card className="flex h-full flex-col gap-2 p-5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent font-sans text-sm font-extrabold text-black">
+                  {i + 1}
+                </span>
+                <h3 className="font-sans text-base font-extrabold uppercase">
+                  {step.title}
+                </h3>
+                <p className="font-sans text-sm text-black/60">{step.body}</p>
+              </Card>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <Card className="mt-8 p-6 md:p-8">
         <h2 className="mb-4 font-sans text-xl font-extrabold uppercase">

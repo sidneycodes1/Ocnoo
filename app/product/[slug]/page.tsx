@@ -21,7 +21,8 @@ export default function ProductPage({ params }: Props) {
 
   return (
     <div>
-      <div className="mx-auto max-w-6xl px-4 pt-6">
+      {/* Desktop only — the mobile screen header carries the back arrow. */}
+      <div className="mx-auto hidden max-w-6xl px-4 pt-6 md:block">
         <Link
           href="/shop"
           className="inline-flex min-h-[44px] items-center font-sans text-sm font-bold uppercase tracking-wide hover:underline hover:underline-offset-4"

@@ -20,7 +20,7 @@ const INTEREST_OPTIONS = [
 export default function WholesalePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl">
+      <h1 className="font-sans text-3xl font-extrabold uppercase tracking-tight md:text-4xl sr-only md:not-sr-only">
         Wholesale With OCNOO
       </h1>
 

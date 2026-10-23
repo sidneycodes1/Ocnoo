@@ -4,8 +4,48 @@
 
 @layer base {
   body {
-    @apply bg-white text-black font-sans antialiased;
+    @apply bg-page text-black font-sans antialiased;
   }
+}
+
+/*
+ * Height of the sticky header, per breakpoint — mobile 57px (min-h-[56px] plus
+ * the 1px bottom border), desktop 122px.
+ *
+ * Three things must agree on this number and all three read it from here:
+ * a policy section's `scroll-margin-top` (so an anchor jump does not bury the
+ * heading under the header), the sticky contents rail's `top`, and the
+ * scroll-spy in components/pages/PolicyContents.tsx, which parses this property
+ * instead of carrying its own copy. If the header changes height, change this
+ * and nothing else.
+ */
+:root {
+  --policy-stack: 57px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --policy-stack: 122px;
+  }
+}
+
+/*
+ * Plain CSS rather than Tailwind utilities: these are only used by the policy
+ * routes, and Next's dev-mode Tailwind rebuild derives its candidate list from
+ * the module graph of the route currently being compiled, so a utility that
+ * appears only on a lazily-visited route can be missing from the sheet.
+ */
+.policy-section {
+  scroll-margin-top: calc(var(--policy-stack) + 1rem);
+}
+
+.policy-contents {
+  position: sticky;
+  top: calc(var(--policy-stack) + 1.5rem);
+  /* A 17-link index is taller than a laptop viewport, so the rail scrolls on
+     its own rather than pushing the last links off screen. */
+  max-height: calc(100vh - var(--policy-stack) - 3rem);
+  overflow-y: auto;
 }
 
 @layer utilities {
@@ -16,5 +56,56 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* iOS notch/gesture-bar safe areas. Only meaningful on mobile, where the
+     fixed tab bar and the sticky action bar sit against the screen edge. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Reserve room for the fixed mobile bars so the footer and the last row of
+     content are never hidden behind them. Heights include the 1px top border
+     (bar box 56px / 68px + 1px). Keep in step with bottomBar() in lib/nav.ts. */
+  .pb-tabbar {
+    padding-bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+  }
+  .pb-actionbar {
+    padding-bottom: calc(69px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
+ * The product sheet's slide-up.
+ *
+ * Plain CSS, not a Tailwind theme animation: Next's dev-mode Tailwind rebuild
+ * derives its candidate list from the module graph of the route being compiled,
+ * and the sheet is only reachable through the lazy `@modal` intercept route. The
+ * utility appeared in one dev compile and disappeared in the next, so the slide
+ * came and went between reloads. globals.css is always compiled in full.
+ *
+ * No `animation-fill-mode`: the panel holds the fixed Add-to-Cart bar, and a
+ * lingering non-none transform would make the panel its containing block, which
+ * stops that bar pinning to the viewport once the slide ends.
+ */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up {
+    animation: none;
   }
 }

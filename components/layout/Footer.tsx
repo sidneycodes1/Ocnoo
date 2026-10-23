@@ -1,119 +1,128 @@
 ﻿import Link from "next/link";
 import { WhatsAppIcon } from "@/components/layout/WhatsAppButton";
+import { FacebookIcon, InstagramIcon } from "@/components/ui/icons";
+import { BUSINESS, WHATSAPP_LINK } from "@/lib/business";
 
+// Every href below is a route that exists in this app. The reference footer this
+// structure came from also listed Careers, Blog, Gift Cards and New Arrivals -
+// there is nowhere for those to go here, so they were left out rather than
+// pointed at a placeholder.
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
-    title: "About us",
+    title: "Shop",
+    links: [
+      { label: "All Products", href: "/shop" },
+      { label: "Wholesale", href: "/wholesale" },
+      { label: "Become a Reseller", href: "/become-a-reseller" },
+      { label: "Track Your Order", href: "/track-order" },
+    ],
+  },
+  {
+    title: "Customer Service",
+    links: [
+      { label: "Contact Us", href: "/contact" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Safety Tips", href: "/safety-tips" },
+      { label: "Billing & Payments", href: "/about/billing-policy" },
+    ],
+  },
+  {
+    title: "Company",
     links: [
       { label: "About OCNOO", href: "/about" },
       { label: "Terms & Conditions", href: "/about/terms" },
       { label: "Privacy Policy", href: "/about/privacy" },
-      { label: "Billing Policy", href: "/about/billing-policy" },
-      { label: "Copyright Infringement Policy", href: "/about/copyright-policy" },
-    ],
-  },
-  {
-    title: "Shop",
-    links: [
-      { label: "Shop", href: "/shop" },
-      { label: "Wholesale", href: "/wholesale" },
-      { label: "Become a Reseller", href: "/become-a-reseller" },
-      { label: "Track Order", href: "/track-order" },
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { label: "Contact Us", href: "/contact" },
-      { label: "Safety Tips", href: "/safety-tips" },
-      { label: "FAQ", href: "/faq" },
+      { label: "Copyright Policy", href: "/about/copyright-policy" },
     ],
   },
 ];
 
-// Placeholder social handles — swap the "#" hrefs for real profiles.
+// Three profiles, because those are the three that exist. The reference shows
+// four circles; inventing an X or YouTube handle would be a dead link.
 const SOCIALS = [
-  { label: "Instagram", href: "#", icon: <InstagramIcon /> },
-  { label: "Facebook", href: "#", icon: <FacebookIcon /> },
-  { label: "X (Twitter)", href: "#", icon: <XIcon /> },
-  { label: "WhatsApp", href: "https://wa.me/2348000000000", icon: <WhatsAppIcon size={20} /> },
+  { label: "Instagram", href: BUSINESS.instagram, icon: <InstagramIcon /> },
+  { label: "Facebook", href: BUSINESS.facebook, icon: <FacebookIcon /> },
+  { label: "WhatsApp", href: WHATSAPP_LINK, icon: <WhatsAppIcon size={20} /> },
 ];
 
-function InstagramIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function FacebookIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M13.5 21v-7h2.4l.4-2.8h-2.8V9.4c0-.8.2-1.4 1.4-1.4h1.5V5.5c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9v2.1H7.6V14h2.2v7h3.7z" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2 2h6.6l4.6 6.8L18.9 2zm-1.1 18h1.8L7.3 3.9H5.4L17.8 20z" />
-    </svg>
-  );
-}
-
+// Desktop chrome only - the layout hides the whole footer below md, where the
+// tab bar owns the bottom edge.
 export default function Footer() {
   return (
-    <footer className="border-t border-line bg-white pb-[96px] md:pb-0">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
-        {COLUMNS.map((col) => (
-          <nav key={col.title} aria-label={col.title}>
-            <p className="mb-4 font-sans text-sm font-extrabold uppercase tracking-wide">
-              {col.title}
+    <footer className="hidden md:block">
+      <div className="bg-charcoal">
+        {/* `items-start` matters more than it looks: without it every column is
+            stretched to the brand column's height, so the link lists float in a
+            taller box than their own content and the leftover space is spread
+            invisibly instead of reading as one empty band under the links. */}
+        <div className="mx-auto grid max-w-6xl grid-cols-2 items-start gap-10 px-4 py-10 lg:grid-cols-4">
+          <div className="flex flex-col gap-4">
+            <span className="font-sans text-2xl font-extrabold uppercase tracking-tight text-on-dark">
+              OCNOO
+            </span>
+            <p className="max-w-[34ch] font-sans text-sm leading-relaxed text-on-dark-muted">
+              Quality products at great prices, delivered to you. A trading name
+              of King Ocnoo Computer Ventures.
             </p>
-            <ul className="flex flex-col gap-2.5">
-              {col.links.map((link) => (
-                <li key={link.href + link.label}>
-                  <Link
-                    href={link.href}
-                    className="font-sans text-sm text-black/70 transition-colors hover:text-black hover:underline hover:underline-offset-4"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ))}
-
-        <div>
-          <p className="mb-4 font-sans text-sm font-extrabold uppercase tracking-wide">
-            Connect with us
-          </p>
-          <div className="flex gap-3">
-            {SOCIALS.map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                target={social.href.startsWith("http") ? "_blank" : undefined}
-                rel={social.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                aria-label={social.label}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-line text-black transition-colors hover:border-accent hover:bg-accent"
-              >
-                {social.icon}
-              </a>
-            ))}
+            {/* The circles were already here; the reference footer labels them,
+                and the label is styled like the column headings beside it.
+                On one row rather than stacked, because the brand column being
+                58px taller than the link columns is what made the empty band
+                under them so wide — the row height is set by the tallest
+                column. */}
+            <div className="flex items-center gap-4">
+              <p className="font-sans text-sm font-extrabold uppercase tracking-wide text-on-dark">
+                Follow us
+              </p>
+              <ul className="flex items-center gap-3">
+                {SOCIALS.map((social) => (
+                  <li key={social.label}>
+                    <a
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.label}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-on-dark transition-colors hover:border-accent hover:bg-accent hover:text-black"
+                    >
+                      {social.icon}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-4 py-5 text-center font-sans text-xs uppercase tracking-wide text-black/60">
-          © {new Date().getFullYear()} OCNOO
-        </p>
+          {COLUMNS.map((col) => (
+            <nav key={col.title} aria-label={col.title}>
+              <p className="mb-4 font-sans text-sm font-extrabold uppercase tracking-wide text-on-dark">
+                {col.title}
+              </p>
+              {/* `block py-1` instead of a bare inline link: the inline box was
+                  18.5px tall, under the 24px minimum target size, and the block
+                  padding also lets the lists sit closer together (gap-0.5)
+                  without the links touching. */}
+              <ul className="flex flex-col gap-0.5">
+                {col.links.map((link) => (
+                  <li key={link.href + link.label}>
+                    <Link
+                      href={link.href}
+                      className="block py-1 font-sans text-sm text-on-dark-muted transition-colors hover:text-on-dark hover:underline hover:underline-offset-4"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+
+        <div className="border-t border-white/10">
+          <p className="mx-auto max-w-6xl px-4 py-5 text-center font-sans text-xs uppercase tracking-wide text-on-dark-muted">
+            © {new Date().getFullYear()} OCNOO Online Store — King Ocnoo Computer
+            Ventures. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   );

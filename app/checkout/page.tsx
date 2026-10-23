@@ -1,49 +1,21 @@
 ﻿"use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useOrders, type Order } from "@/context/OrdersContext";
+import { formatAddress, useAddresses, type Address } from "@/context/AddressesContext";
+import { useProfile } from "@/context/ProfileContext";
 import { formatNaira, generateOrderNumber } from "@/lib/utils";
+import { NG_STATES, getDeliveryQuote } from "@/lib/delivery";
+import { getLga } from "@/data/nigeria/locations";
+import { BUSINESS } from "@/lib/business";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import PriceTag from "@/components/ui/PriceTag";
 import Card from "@/components/ui/Card";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
-
-const NG_STATES = [
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "FCT - Abuja",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Lagos",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-];
 
 type PaymentMethod = "paystack" | "transfer";
 
@@ -54,15 +26,21 @@ interface Delivery {
   state: string;
 }
 
-interface OrderSnapshot {
-  orderNumber: string;
-  lines: { name: string; quantity: number; lineTotal: number }[];
-  subtotal: number;
-  delivery: Delivery;
-  payment: PaymentMethod;
-}
-
 const emptyDelivery: Delivery = { name: "", phone: "", address: "", state: "" };
+
+/** What a saved address looks like once it is dropped into the form. */
+function deliveryFrom(a: Address): Delivery {
+  return {
+    name: a.recipientName,
+    phone: a.phone,
+    // The LGA belongs on the rider's line: "Ikeja" as a town and Ikeja as the
+    // local government are different scopes, and the street alone is ambiguous.
+    address: [a.address, a.city, a.lga ? getLga(a.lga)?.name ?? "" : ""]
+      .filter(Boolean)
+      .join(", "),
+    state: a.state,
+  };
+}
 
 function Field({
   label,
@@ -103,14 +81,64 @@ function BankIcon() {
   );
 }
 
+/** Keep trying until the number is not already used on this device. */
+function uniqueOrderNumber(taken: (candidate: string) => boolean): string {
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = generateOrderNumber();
+    if (!taken(candidate)) return candidate;
+  }
+  return `OCN-${Date.now().toString().slice(-6)}`;
+}
+
 export default function CheckoutPage() {
   const { lines, subtotal, clearCart, hydrated } = useCart();
+  const { addOrder, findByNumber } = useOrders();
+  const {
+    addresses,
+    defaultAddress,
+    hydrated: addressesHydrated,
+  } = useAddresses();
+  const { profile, hydrated: profileHydrated } = useProfile();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [delivery, setDelivery] = useState<Delivery>(emptyDelivery);
   const [payment, setPayment] = useState<PaymentMethod | null>(null);
   const [attempted, setAttempted] = useState(false);
-  const [order, setOrder] = useState<OrderSnapshot | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
+  /** Which picker row is highlighted. Cleared the moment a field is typed in. */
+  const [chosenId, setChosenId] = useState<string | null>(null);
+
+  // Step 1 is the same four questions on every order. Fill them from the
+  // Address Book (or the saved profile for the contact rows) once the stores
+  // have loaded, so a returning visitor only ever has to confirm.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !addressesHydrated || !profileHydrated || seeded.current) return;
+    seeded.current = true;
+    if (defaultAddress) {
+      setChosenId(defaultAddress.id);
+      setDelivery(deliveryFrom(defaultAddress));
+      return;
+    }
+    const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+    if (!fullName && !profile.phone) return;
+    setDelivery((d) => ({
+      ...d,
+      name: d.name || fullName,
+      phone: d.phone || profile.phone,
+    }));
+  }, [hydrated, addressesHydrated, profileHydrated, defaultAddress, profile]);
+
+  /** Hand-typed delivery details are no longer "the saved address". */
+  function editDelivery(key: keyof Delivery, value: string) {
+    setChosenId(null);
+    setDelivery((d) => ({ ...d, [key]: value }));
+  }
+
+  function applyAddress(a: Address) {
+    setChosenId(a.id);
+    setDelivery(deliveryFrom(a));
+  }
 
   if (!hydrated) {
     return (
@@ -119,6 +147,9 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
+  const quote = getDeliveryQuote(delivery.state);
+  const total = subtotal + quote.fee;
 
   // ---- Step 3: confirmation (rendered from the snapshot, cart already cleared)
   if (step === 3 && order) {
@@ -138,6 +169,30 @@ export default function CheckoutPage() {
               Order number
             </p>
             <p className="font-mono text-2xl font-bold">{order.orderNumber}</p>
+            <p className="mt-1 font-sans text-xs text-black/50">
+              Saved on this device. Use it on the Track Order page.
+            </p>
+          </div>
+
+          {/* Mobile totals — delivery is quoted from the state entered in step 1. */}
+          <div className="mt-6 flex flex-col gap-1 font-sans text-sm md:hidden">
+            <div className="flex justify-between">
+              <span className="text-black/60">Items</span>
+              <PriceTag price={order.subtotal} tone="shell" size="sm" />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-black/60">
+                Delivery to {order.delivery.state} (zone {order.zone})
+              </span>
+              <PriceTag price={order.deliveryFee} tone="shell" size="sm" />
+            </div>
+            <div className="mt-1 flex items-center justify-between border-t border-line pt-2 font-bold">
+              <span>Total</span>
+              <PriceTag price={order.total} tone="shell" />
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-black/45">
+              Delivery fees are estimates and are confirmed before dispatch.
+            </p>
           </div>
 
           <div className="mt-6 flex flex-col gap-2">
@@ -149,7 +204,7 @@ export default function CheckoutPage() {
                 <span className="font-mono">{formatNaira(l.lineTotal)}</span>
               </div>
             ))}
-            <div className="mt-2 flex justify-between border-t border-line pt-2 font-sans font-bold">
+            <div className="mt-2 hidden justify-between border-t border-line pt-2 font-sans font-bold md:flex">
               <span>Subtotal</span>
               <span className="font-mono">{formatNaira(order.subtotal)}</span>
             </div>
@@ -173,6 +228,9 @@ export default function CheckoutPage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Button href="/shop" variant="primary">
               Continue Shopping
+            </Button>
+            <Button href="/track-order" variant="secondary">
+              Track this order
             </Button>
             <WhatsAppButton label="Chat to Confirm" />
           </div>
@@ -216,17 +274,23 @@ export default function CheckoutPage() {
 
   function handlePlaceOrder() {
     if (!payment) return;
-    const snapshot: OrderSnapshot = {
-      orderNumber: generateOrderNumber(),
+    const snapshot: Order = {
+      orderNumber: uniqueOrderNumber((n) => !!findByNumber(n)),
       lines: lines.map((l) => ({
         name: l.product.name,
         quantity: l.quantity,
         lineTotal: l.lineTotal,
       })),
       subtotal,
+      deliveryFee: quote.fee,
+      total,
+      zone: quote.zone,
       delivery,
       payment,
+      status: "placed",
+      createdAt: new Date().toISOString(),
     };
+    addOrder(snapshot);
     setOrder(snapshot);
     clearCart();
     setStep(3);
@@ -234,7 +298,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-2 font-sans text-3xl font-extrabold uppercase tracking-tight">
+      <h1 className="mb-2 font-sans text-3xl font-extrabold uppercase tracking-tight sr-only md:not-sr-only">
         Checkout
       </h1>
       <p className="mb-6 font-sans text-sm font-bold uppercase tracking-wide">
@@ -257,10 +321,69 @@ export default function CheckoutPage() {
       {/* ---- STEP 1: Delivery info ---- */}
       {step === 1 && (
         <div className="flex flex-col gap-4">
+          {/* The picker is only a shortcut to the same four fields below - they
+              stay editable, so a saved address is a starting point, not a lock. */}
+          {addresses.length > 0 && (
+            <div className="rounded-xl border border-line bg-white p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-sans text-xs font-bold uppercase tracking-wide text-black/50">
+                  Saved addresses
+                </h2>
+                <Link
+                  href="/account/addresses"
+                  className="font-sans text-xs font-bold uppercase tracking-wide underline decoration-line underline-offset-4 hover:decoration-black"
+                >
+                  Manage
+                </Link>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Saved delivery addresses"
+                className="mt-2 flex flex-col gap-2"
+              >
+                {addresses.map((a) => {
+                  const active = a.id === chosenId;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => applyAddress(a)}
+                      className={
+                        "flex min-h-[44px] flex-col justify-center gap-0.5 rounded-lg border px-3 py-2 text-left " +
+                        (active
+                          ? "border-primary bg-primary/5"
+                          : "border-line bg-white")
+                      }
+                    >
+                      <span className="font-sans text-sm font-bold">
+                        {a.label}
+                        {a.isDefault && (
+                          <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-black/50">
+                            Default
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-sans text-xs text-black/60">
+                        {formatAddress(a)}
+                      </span>
+                    </button>
+                  );
+                })}
+                {chosenId === null && (
+                  <p className="font-sans text-xs text-black/55">
+                    Using details you typed yourself.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <Field label="Full name" error={attempted && !delivery.name.trim() ? "req" : undefined}>
             <Input
               value={delivery.name}
-              onChange={(e) => setDelivery({ ...delivery, name: e.target.value })}
+              onChange={(e) => editDelivery("name", e.target.value)}
               placeholder="e.g. Ada Obi"
             />
           </Field>
@@ -268,8 +391,9 @@ export default function CheckoutPage() {
           <Field label="Phone" error={attempted && !delivery.phone.trim() ? "req" : undefined}>
             <Input
               type="tel"
+              inputMode="tel"
               value={delivery.phone}
-              onChange={(e) => setDelivery({ ...delivery, phone: e.target.value })}
+              onChange={(e) => editDelivery("phone", e.target.value)}
               placeholder="e.g. 08000000000"
             />
           </Field>
@@ -277,31 +401,29 @@ export default function CheckoutPage() {
           <Field label="Delivery address" error={attempted && !delivery.address.trim() ? "req" : undefined}>
             <Input
               value={delivery.address}
-              onChange={(e) => setDelivery({ ...delivery, address: e.target.value })}
+              onChange={(e) => editDelivery("address", e.target.value)}
               placeholder="Street, city"
             />
           </Field>
 
           <Field label="State" error={attempted && !delivery.state ? "req" : undefined}>
-            <select
+            <Select
+              options={NG_STATES}
+              placeholder="Select a state…"
               value={delivery.state}
-              onChange={(e) => setDelivery({ ...delivery, state: e.target.value })}
-              className="w-full min-h-[44px] rounded-md border border-line bg-white px-3 py-2 font-sans focus:border-accent focus:ring-2 focus:ring-accent/40 focus:outline-none"
-            >
-              <option value="">Select a state…</option>
-              {NG_STATES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              aria-label="Delivery state"
+              onChange={(e) => editDelivery("state", e.target.value)}
+            />
           </Field>
 
-          <div className="mt-2 flex justify-between gap-3">
-            <Button href="/cart" variant="secondary">
+          {/* Stacked full-width on mobile: two side-by-side 16px-bold labels
+              wrapped onto two lines at 320px. `md:` restores the original
+              justify-between row, so desktop is unchanged. */}
+          <div className="mt-2 flex flex-col gap-3 md:flex-row md:justify-between">
+            <Button href="/cart" variant="secondary" className="w-full md:w-auto">
               Back to Cart
             </Button>
-            <Button variant="primary" onClick={handleContinueStep1}>
+            <Button variant="primary" onClick={handleContinueStep1} className="w-full md:w-auto">
               Continue
             </Button>
           </div>
@@ -352,11 +474,70 @@ export default function CheckoutPage() {
             </button>
           </div>
 
-          <div className="mt-2 flex justify-between gap-3">
-            <Button variant="secondary" onClick={() => setStep(1)}>
+          {payment === "transfer" && (
+            <div className="rounded-xl border border-line bg-white p-4">
+              <p className="font-sans text-xs uppercase tracking-wide text-black/50">
+                Transfer to
+              </p>
+              <dl className="mt-2 flex flex-col gap-1 font-sans text-sm">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-black/60">Bank</dt>
+                  <dd className="font-semibold">{BUSINESS.bank.bankName}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-black/60">Account name</dt>
+                  <dd className="font-semibold">{BUSINESS.bank.accountName}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-black/60">Account number</dt>
+                  <dd className="font-mono font-semibold">
+                    {BUSINESS.bank.accountNumber}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-3 font-sans text-[11px] leading-relaxed text-black/50">
+                Send only to this account. A transfer screenshot is not a
+                confirmed payment until the funds are verified, and your order
+                is processed after verification.
+              </p>
+            </div>
+          )}
+
+          {/* Mobile order summary — the fee is only knowable once a state exists. */}
+          <div className="rounded-xl border border-line bg-white p-4 md:hidden">
+            <h2 className="font-sans text-xs uppercase tracking-wide text-black/50">
+              Order summary
+            </h2>
+            <div className="mt-2 flex flex-col gap-1 font-sans text-sm">
+              <div className="flex justify-between">
+                <span className="text-black/60">
+                  Items ({lines.length})
+                </span>
+                <PriceTag price={subtotal} tone="shell" size="sm" />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-black/60">
+                  Delivery · {delivery.state} · zone {quote.zone}
+                </span>
+                <PriceTag price={quote.fee} tone="shell" size="sm" />
+              </div>
+              <div className="mt-1 flex items-center justify-between border-t border-line pt-2 font-bold">
+                <span>Total</span>
+                <PriceTag price={total} tone="shell" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-col gap-3 md:flex-row md:justify-between">
+            <Button variant="secondary" onClick={() => setStep(1)} className="w-full md:w-auto">
               Back
             </Button>
-            <Button variant="primary" disabled={!payment} onClick={handlePlaceOrder}>
+            <Button
+              variant="primary"
+              disabled={!payment}
+              onClick={handlePlaceOrder}
+              className="w-full md:w-auto"
+            >
               Place Order
             </Button>
           </div>

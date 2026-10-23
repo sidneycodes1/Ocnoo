@@ -3,9 +3,10 @@
 import { usePathname } from "next/navigation";
 import Button from "@/components/ui/Button";
 
-// Routes where a global "list an item" CTA is noise: the destination page
-// itself, and the checkout funnel (don't distract mid-purchase).
-const HIDDEN_ON = ["/become-a-reseller", "/checkout"];
+// Routes where a global "list an item" CTA is noise: the composer itself (it is
+// the same action, already on screen), the list of what you posted, and the
+// purchase funnel (don't distract mid-purchase).
+const HIDDEN_ON = ["/my-ads", "/become-a-reseller", "/cart", "/checkout"];
 
 function PlusIcon() {
   return (
@@ -24,23 +25,35 @@ function PlusIcon() {
   );
 }
 
-// Persistent floating sell CTA. On small screens it sits above the product
-// sticky action bar (bottom-24 clears it); from md up it tucks into the corner.
+// Persistent floating sell CTA — desktop only. On mobile the raised centre
+// "Sell" tab in <TabBar /> is the equivalent affordance, and having both would
+// stack two floating actions over the product action bar.
 export default function SellFab() {
   const pathname = usePathname();
-  if (HIDDEN_ON.includes(pathname)) return null;
+  // `/sell/<id>` is the same composer, so the prefix check has to cover it; an
+  // exact match on "/sell" would leave the FAB floating over an open form.
+  const onComposer = pathname === "/sell" || pathname.startsWith("/sell/");
+  if (onComposer || HIDDEN_ON.includes(pathname)) return null;
 
   return (
-    <Button
-      href="/become-a-reseller"
-      variant="highlight"
-      aria-label="List Your Item"
-      // !rounded-full: the important modifier is needed to beat the primitive's
-      // base `rounded-md` (same specificity, later in the generated stylesheet).
-      className="fixed bottom-24 right-4 z-40 gap-2 !rounded-full md:bottom-6 md:right-6"
+    // The aside is the fixed element so the button keeps its own inline-flex
+    // sizing, and it is a landmark: this link used to sit outside every
+    // landmark on the page, which axe reports as a `region` violation on the
+    // six routes where the FAB renders.
+    <aside
+      aria-label="Sell on OCNOO"
+      className="fixed bottom-6 right-6 z-40 hidden md:block"
     >
-      <PlusIcon />
-      <span>List Your Item</span>
-    </Button>
+      <Button
+        href="/sell"
+        variant="highlight"
+        shape="pill"
+        aria-label="List Your Item"
+        className="gap-2"
+      >
+        <PlusIcon />
+        <span>List Your Item</span>
+      </Button>
+    </aside>
   );
 }

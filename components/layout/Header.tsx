@@ -1,52 +1,47 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import Button from "@/components/ui/Button";
-import {
-  BookmarkIcon,
-  MessagesIcon,
-  NotificationsIcon,
-  AccountIcon,
-} from "@/components/ui/icons";
+import { CartIcon, MenuIcon } from "@/components/ui/icons";
 
+// Real destinations only. The old list carried a "Deals" entry pointing at
+// /shop - the same href as "Shop" - which was a link to nowhere in particular,
+// so it is gone rather than kept for looks.
+// "Categories" and "Sell" are the words the mobile tab bar already uses for
+// these same two hrefs, so the two breakpoints now name them identically.
+// Wholesale and Contact are no longer primary nav: they stay in the footer and
+// in the Menu panel, which is where a desktop visitor now looks for the rest.
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Shop", href: "/shop" },
-  { label: "Deals", href: "/shop" },
-  { label: "Wholesale", href: "/wholesale" },
-  { label: "Become a Reseller", href: "/become-a-reseller" },
+  { label: "Categories", href: "/shop" },
+  { label: "Sell", href: "/sell" },
   { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
 ];
 
-function CartIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
-      aria-hidden="true"
-    >
-      <circle cx="9" cy="20" r="1" />
-      <circle cx="18" cy="20" r="1" />
-      <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L23 6H6" />
-    </svg>
-  );
+// What the Menu panel holds on top of the links above. These are the screens
+// that used to have an icon in the cluster, plus the two a visitor is most
+// likely to hunt for - nothing here is reachable only from this panel.
+const ACCOUNT_LINKS = [
+  { label: "Saved Items", href: "/saved" },
+  { label: "My Ads", href: "/my-ads" },
+  { label: "Account", href: "/account" },
+  { label: "Track Order", href: "/track-order" },
+];
+
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/25";
+
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-function SearchIcon() {
+function SearchGlyph({ size = 18, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -54,7 +49,7 @@ function SearchIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/50"
+      className={className}
     >
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.3-4.3" />
@@ -62,11 +57,22 @@ function SearchIcon() {
   );
 }
 
-// Always-visible search. Submitting routes to /shop with the term as ?q=
-// (text-search filtering itself is wired in a later phase).
+// Always-visible search. Submitting routes to /shop with the term as ?q=, and
+// the field mirrors an incoming ?q= so a filtered page never shows a blank box.
+// The reference puts the submit control INSIDE the field, which is what the
+// absolute button below does - it is a real type=submit, so Enter and clicking
+// both work.
 function SearchBar({ className = "" }: { className?: string }) {
-  const [q, setQ] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTerm = searchParams.get("q") ?? "";
+  const [q, setQ] = useState(urlTerm);
+
+  // Follow external navigations (back/forward, links carrying a query) without
+  // fighting what the user is typing.
+  useEffect(() => {
+    setQ(urlTerm);
+  }, [urlTerm]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,139 +82,251 @@ function SearchBar({ className = "" }: { className?: string }) {
 
   return (
     <form role="search" onSubmit={onSubmit} className={`relative ${className}`}>
-      <SearchIcon />
+      <SearchGlyph className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-black/45" />
       <input
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search products…"
+        placeholder="Search products, brands and more…"
         aria-label="Search products"
-        className="min-h-[44px] w-full rounded-full border border-line bg-surface pl-10 pr-4 font-sans text-sm focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/40"
+        className="min-h-[44px] w-full rounded-full border border-line bg-surface pl-11 pr-16 font-sans text-sm text-black placeholder:text-black/45 focus:border-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-black/10"
       />
+      <button
+        type="submit"
+        aria-label="Search"
+        className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-white transition-opacity hover:opacity-90"
+      >
+        <SearchGlyph size={17} />
+      </button>
     </form>
   );
 }
 
-// Placeholder account cluster (no real auth — links to empty-state pages).
-const ACCOUNT_LINKS = [
-  { href: "/saved", label: "Saved", icon: <BookmarkIcon /> },
-  { href: "/messages", label: "Messages", icon: <MessagesIcon /> },
-  { href: "/notifications", label: "Notifications", icon: <NotificationsIcon /> },
-  { href: "/account", label: "Account", icon: <AccountIcon /> },
-];
+// useSearchParams bails out to client-side rendering for the whole route unless
+// it sits under a Suspense boundary, so the static shell can still be prerendered.
+function SearchBarSlot({ className = "" }: { className?: string }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          aria-hidden="true"
+          className={`min-h-[44px] rounded-full border border-line bg-surface ${className}`}
+        />
+      }
+    >
+      <SearchBar className={className} />
+    </Suspense>
+  );
+}
+
+// Icon-over-label cluster item, with a live count badge when there is one.
+function HeaderLink({
+  href,
+  label,
+  icon,
+  count,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  count?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={count ? `${label}, ${count} items` : label}
+      className={`flex min-h-[52px] w-[68px] flex-col items-center justify-center gap-1 text-black/70 transition-colors hover:text-black ${FOCUS_RING}`}
+    >
+      <span className="relative">
+        {icon}
+        {!!count && count > 0 && (
+          <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-black">
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
+      </span>
+      <span className="font-sans text-[11px] uppercase tracking-wide">{label}</span>
+    </Link>
+  );
+}
+
+// One row inside the Menu panel. A link, not a button, and 44px tall like
+// every other tap target in this build.
+function MenuLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`flex min-h-[44px] items-center rounded-lg px-3 font-sans text-sm font-bold uppercase tracking-wide transition-colors ${
+          active ? "bg-surface text-black" : "text-black/70 hover:bg-surface hover:text-black"
+        } ${FOCUS_RING}`}
+      >
+        {label}
+      </Link>
+    </li>
+  );
+}
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
-  const { count } = useCart();
+  const { count: cartCount } = useCart();
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // A navigation always closes the panel, so it can never be left hanging open
+  // over a screen it has nothing to do with.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Escape closes it from wherever focus happens to be, which is the one thing
+  // a mouse-less visitor needs from a disclosure.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
 
   return (
-    // z-50 keeps the header (and its open menu) above the z-40 floating CTA,
-    // so the FAB cannot cover the last menu row on narrow/short screens.
-    <header className="sticky top-0 z-50 border-b border-line bg-white">
-      {/* Top row: logo, inline search (md+), cart, hamburger */}
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link
-          href="/"
-          className="flex min-h-[44px] shrink-0 flex-col justify-center leading-none"
-          onClick={() => setOpen(false)}
-        >
-          <span className="font-sans text-2xl font-extrabold uppercase tracking-tight">
-            OCNOO
-          </span>
-          <span className="font-sans text-[10px] uppercase tracking-[0.2em]">
-            Buy • Sell • Resell
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50">
+      {/* ---- Main bar: identity, search, account cluster ---- */}
+      <div className="border-b border-line bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-4 py-3">
+          <Link
+            href="/"
+            className="flex min-h-[44px] shrink-0 flex-col justify-center gap-1 leading-none"
+          >
+            <span className="font-sans text-2xl font-extrabold uppercase tracking-tight text-black">
+              OCNOO
+            </span>
+            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-black/70">
+              Buy • Sell • Resell
+            </span>
+          </Link>
 
-        <SearchBar className="hidden md:block md:w-72 md:max-w-md lg:flex-1" />
+          {/* Fixed cap + justify-between on the row: the leftover space splits
+              evenly either side of the field, so the logo→search and
+              search→cluster gaps stay equal without a dead-air pocket. */}
+          <SearchBarSlot className="hidden w-full max-w-2xl md:block" />
 
-        <div className="ml-auto flex items-center gap-3 md:ml-0">
-          {ACCOUNT_LINKS.map((l) => (
-            <Button
-              key={l.href}
-              href={l.href}
-              variant="secondary"
-              aria-label={l.label}
-              className="hidden h-11 w-11 shrink-0 !p-0 md:inline-flex"
+          {/* This whole component is mounted inside a `hidden md:block` wrapper
+              and MobileHeader owns the small screens, so nothing here needs a
+              responsive class: at md+ the cluster is the cart you act on and the
+              Menu that holds everything else. Saved and Account used to sit here
+              as icons; they are now rows inside the panel. Both 68x52, so the bar
+              stays 122px tall exactly as it was with three items. */}
+          <div className="relative flex shrink-0 items-center gap-1">
+            <HeaderLink
+              href="/cart"
+              label="Cart"
+              icon={<CartIcon size={22} />}
+              count={cartCount}
+            />
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              aria-controls="desktop-menu"
+              onClick={() => setMenuOpen((open) => !open)}
+              // One colour class per state, chosen by ternary: appending
+              // `text-black` after `text-black/70` would not win, because
+              // Tailwind resolves by generated order, not class-attribute order.
+              className={`flex min-h-[52px] w-[68px] flex-col items-center justify-center gap-1 transition-colors ${
+                menuOpen ? "text-black" : "text-black/70 hover:text-black"
+              } ${FOCUS_RING}`}
             >
-              {l.icon}
-            </Button>
-          ))}
-
-          <Button
-            href="/cart"
-            variant="secondary"
-            aria-label="Cart"
-            className="relative h-11 w-11 shrink-0 !p-0"
-          >
-            <CartIcon />
-            {count > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-md bg-black px-1 text-[11px] font-bold text-white">
-                {count}
+              <MenuIcon size={22} />
+              <span className="font-sans text-[11px] uppercase tracking-wide">
+                Menu
               </span>
-            )}
-          </Button>
+            </button>
 
-          {/* Hamburger nav toggle (all widths — the only menu now that the
-              desktop nav row is gone) */}
-          <Button
-            type="button"
-            variant="secondary"
-            aria-label="Toggle menu"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            className="h-11 w-11 shrink-0 !p-0"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              {open ? (
-                <path d="M4 4l16 16M20 4L4 20" />
-              ) : (
-                <path d="M3 6h18M3 12h18M3 18h18" />
-              )}
-            </svg>
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile search row (always visible) */}
-      <div className="mx-auto max-w-6xl px-4 pb-3 md:hidden">
-        <SearchBar />
-      </div>
-
-      {/* Collapsible nav (all widths) */}
-      {open && (
-        <nav aria-label="Main" className="border-t border-line bg-white">
-          {/* Account shortcuts: menu-only below md; inline in the top row above that */}
-          <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 py-4 md:hidden">
-            {ACCOUNT_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="flex flex-col items-center gap-1.5 rounded-lg border border-line py-3 text-center hover:bg-surface"
-              >
-                {l.icon}
-                <span className="font-sans text-xs font-bold uppercase">
-                  {l.label}
-                </span>
-              </Link>
-            ))}
-          </div>
-          <ul className="mx-auto flex max-w-6xl flex-col border-t border-line px-4">
-            {NAV_LINKS.map((link) => (
-              <li key={link.label} className="border-b border-line last:border-b-0">
-                <Link
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="block py-3 font-sans text-base font-bold uppercase tracking-wide"
+            {menuOpen && (
+              <>
+                {/* Catches the click outside the panel. It sits under the panel
+                    and over the page, so the menu itself stays clickable. */}
+                <div
+                  aria-hidden="true"
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <nav
+                  id="desktop-menu"
+                  aria-label="More"
+                  className="absolute right-0 top-full z-50 w-[260px] rounded-xl border border-line bg-white p-2 shadow-lift"
                 >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+                  <p className="px-3 pb-1 pt-2 font-sans text-[11px] uppercase tracking-[0.2em] text-black/70">
+                    Browse
+                  </p>
+                  <ul>
+                    {NAV_LINKS.map((link) => (
+                      <MenuLink
+                        key={link.href}
+                        href={link.href}
+                        label={link.label}
+                        active={isActive(pathname, link.href)}
+                      />
+                    ))}
+                  </ul>
+                  <p className="px-3 pb-1 pt-3 font-sans text-[11px] uppercase tracking-[0.2em] text-black/70">
+                    Your account
+                  </p>
+                  <ul>
+                    {ACCOUNT_LINKS.map((link) => (
+                      <MenuLink
+                        key={link.href}
+                        href={link.href}
+                        label={link.label}
+                        active={isActive(pathname, link.href)}
+                      />
+                    ))}
+                  </ul>
+                </nav>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* The primary links stay visible on desktop - hiding them all behind
+            one click is what makes a shop hard to browse - and the Menu button
+            beside the cart opens the rest. Mobile navigation is the tab bar,
+            which lives outside this component. */}
+        <nav aria-label="Main" className="border-t border-line">
+          <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4">
+            {NAV_LINKS.map((link) => {
+              const active = isActive(pathname, link.href);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={
+                      "inline-flex min-h-[44px] items-center border-b-2 px-3 font-sans text-sm font-bold uppercase tracking-wide transition-colors " +
+                      (active
+                        ? "border-primary text-black"
+                        : "border-transparent text-black/70 hover:border-black/30 hover:text-black") +
+                      " " +
+                      FOCUS_RING
+                    }
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
-      )}
+      </div>
     </header>
   );
 }

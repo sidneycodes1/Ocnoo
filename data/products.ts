@@ -2,6 +2,8 @@
 
 // Demo-only "backend": all product data lives here as typed static files.
 // Image paths are placeholders — real photos get added later.
+// Ratings, review counts and compare-at prices are DEMO VALUES, not real
+// market data; replace them with genuine listings before launch.
 export const products: Product[] = [
   // Computers & Phones
   {
@@ -9,12 +11,24 @@ export const products: Product[] = [
     slug: "hp-pavilion-15-laptop",
     name: "HP Pavilion 15 Laptop",
     price: 720000,
+    oldPrice: 780000,
     category: "computers-phones",
     images: ["/images/placeholder-1.jpg"],
     description:
-      "15.6\" FHD laptop with an Intel Core i5 processor, 16GB RAM and a 512GB SSD. Built for work, school and light creative tasks.",
+      '15.6" FHD laptop with an Intel Core i5 processor, 16GB RAM and a 512GB SSD. Built for work, school and light creative tasks.',
     badge: "New",
     inStock: true,
+    brand: "HP",
+    condition: "New",
+    rating: 4.6,
+    reviewCount: 38,
+    stockQty: 6,
+    specs: [
+      { label: "Processor", value: "Intel Core i5" },
+      { label: "Memory", value: "16GB RAM" },
+      { label: "Storage", value: "512GB SSD" },
+      { label: "Display", value: '15.6" FHD' },
+    ],
   },
   {
     id: "p02",
@@ -26,18 +40,41 @@ export const products: Product[] = [
     description:
       "128GB 5G smartphone with a 50MP triple camera, Super AMOLED display and all-day battery.",
     inStock: true,
+    brand: "Samsung",
+    condition: "New",
+    rating: 4.4,
+    reviewCount: 21,
+    stockQty: 14,
+    specs: [
+      { label: "Storage", value: "128GB" },
+      { label: "Network", value: "5G" },
+      { label: "Camera", value: "50MP triple" },
+      { label: "Display", value: "Super AMOLED" },
+    ],
   },
   {
     id: "p03",
     slug: "lenovo-thinkpad-x1",
     name: "Lenovo ThinkPad X1 Carbon",
     price: 950000,
+    oldPrice: 1050000,
     category: "computers-phones",
     images: ["/images/placeholder-3.jpg"],
     description:
       "Ultra-light business laptop with an Intel Core i7, 16GB RAM, 1TB SSD and legendary keyboard comfort.",
     badge: "Deal",
     inStock: true,
+    brand: "Lenovo",
+    condition: "Used",
+    rating: 4.8,
+    reviewCount: 12,
+    stockQty: 3,
+    specs: [
+      { label: "Processor", value: "Intel Core i7" },
+      { label: "Memory", value: "16GB RAM" },
+      { label: "Storage", value: "1TB SSD" },
+      { label: "Build", value: "Ultra-light carbon" },
+    ],
   },
 
   // Electronics & Power Accessories
@@ -46,12 +83,23 @@ export const products: Product[] = [
     slug: "anker-20000mah-power-bank",
     name: "Anker 20,000mAh Power Bank",
     price: 45000,
+    oldPrice: 52000,
     category: "electronics-power-accessories",
     images: ["/images/placeholder-4.jpg"],
     description:
       "Fast-charge power bank with dual USB output and PowerIQ. Charges a phone up to four times on one full charge.",
     badge: "Deal",
     inStock: true,
+    brand: "Anker",
+    condition: "New",
+    rating: 4.7,
+    reviewCount: 64,
+    stockQty: 25,
+    specs: [
+      { label: "Capacity", value: "20,000mAh" },
+      { label: "Outputs", value: "Dual USB" },
+      { label: "Charging", value: "PowerIQ fast charge" },
+    ],
   },
   {
     id: "p05",
@@ -63,6 +111,16 @@ export const products: Product[] = [
     description:
       "Expand one USB-C port into HDMI, three USB 3.0 ports, SD/TF card readers and 100W pass-through charging.",
     inStock: true,
+    brand: "ORICO",
+    condition: "New",
+    rating: 4.2,
+    reviewCount: 9,
+    stockQty: 18,
+    specs: [
+      { label: "Ports", value: "7-in-1" },
+      { label: "Video", value: "HDMI" },
+      { label: "Charging", value: "100W pass-through" },
+    ],
   },
   {
     id: "p06",
@@ -74,6 +132,16 @@ export const products: Product[] = [
     description:
       "Cordless standing fan with a built-in battery that runs for hours during power outages. Three speed settings.",
     inStock: true,
+    brand: "Philips",
+    condition: "New",
+    rating: 4.1,
+    reviewCount: 17,
+    stockQty: 8,
+    specs: [
+      { label: "Power", value: "Built-in rechargeable battery" },
+      { label: "Speeds", value: "3 settings" },
+      { label: "Use", value: "Outage / cordless" },
+    ],
   },
 
   // Home & Kitchen
@@ -87,18 +155,39 @@ export const products: Product[] = [
     description:
       "Stainless-steel 1.5L kettle with auto shut-off and boil-dry protection. Boils water in minutes.",
     inStock: true,
+    brand: "Nexus",
+    condition: "New",
+    rating: 4.3,
+    reviewCount: 26,
+    stockQty: 30,
+    specs: [
+      { label: "Capacity", value: "1.5L" },
+      { label: "Body", value: "Stainless steel" },
+      { label: "Safety", value: "Auto shut-off, boil-dry" },
+    ],
   },
   {
     id: "p08",
     slug: "scanfrost-blender-2l",
     name: "Scanfrost 2L Blender",
     price: 65000,
+    oldPrice: 72000,
     category: "home-kitchen",
     images: ["/images/placeholder-8.jpg"],
     description:
       "Heavy-duty 2L blender with stainless blades and multiple speeds. Perfect for smoothies, peppers and pap.",
     badge: "New",
     inStock: true,
+    brand: "Scanfrost",
+    condition: "New",
+    rating: 4.5,
+    reviewCount: 41,
+    stockQty: 11,
+    specs: [
+      { label: "Capacity", value: "2L" },
+      { label: "Blades", value: "Stainless steel" },
+      { label: "Speeds", value: "Multiple" },
+    ],
   },
   {
     id: "p09",
@@ -110,6 +199,16 @@ export const products: Product[] = [
     description:
       "Seven-piece non-stick pot and pan set with heat-resistant handles. Even heating and easy cleaning.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.0,
+    reviewCount: 7,
+    stockQty: 5,
+    specs: [
+      { label: "Pieces", value: "7" },
+      { label: "Coating", value: "Non-stick" },
+      { label: "Handles", value: "Heat-resistant" },
+    ],
   },
 
   // Office & School Supplies
@@ -123,6 +222,16 @@ export const products: Product[] = [
     description:
       "Pack of 200 ruled foolscap exposition sheets, ideal for school and office note-taking.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.4,
+    reviewCount: 52,
+    stockQty: 200,
+    specs: [
+      { label: "Leaves", value: "200" },
+      { label: "Format", value: "Ruled foolscap" },
+      { label: "Use", value: "School & office" },
+    ],
   },
   {
     id: "p11",
@@ -134,6 +243,16 @@ export const products: Product[] = [
     description:
       "Compact all-in-one inkjet printer for print, scan and copy. Works over Wi-Fi from phone or laptop.",
     inStock: true,
+    brand: "HP",
+    condition: "New",
+    rating: 4.2,
+    reviewCount: 15,
+    stockQty: 7,
+    specs: [
+      { label: "Functions", value: "Print, scan, copy" },
+      { label: "Connectivity", value: "Wi-Fi" },
+      { label: "Type", value: "Inkjet all-in-one" },
+    ],
   },
 
   // Fashion & Accessories
@@ -147,18 +266,38 @@ export const products: Product[] = [
     description:
       "Genuine-leather belt with a brushed-metal buckle. A durable everyday staple for casual and formal wear.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.1,
+    reviewCount: 11,
+    stockQty: 40,
+    specs: [
+      { label: "Material", value: "Genuine leather" },
+      { label: "Buckle", value: "Brushed metal" },
+    ],
   },
   {
     id: "p13",
     slug: "ankara-tote-bag",
     name: "Anka Print Tote Bag",
     price: 22000,
+    oldPrice: 26000,
     category: "fashion-accessories",
     images: ["/images/placeholder-13.jpg"],
     description:
       "Handmade Ankara-print tote with a roomy interior and reinforced straps. Bold, everyday African style.",
     badge: "New",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.9,
+    reviewCount: 5,
+    stockQty: 9,
+    specs: [
+      { label: "Material", value: "Ankara print" },
+      { label: "Make", value: "Handmade" },
+      { label: "Straps", value: "Reinforced" },
+    ],
   },
   {
     id: "p14",
@@ -170,6 +309,16 @@ export const products: Product[] = [
     description:
       "UV400 polarized lenses in a lightweight frame. Cuts glare for driving and bright sunny days.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 3.9,
+    reviewCount: 23,
+    stockQty: 35,
+    specs: [
+      { label: "Lens", value: "UV400 polarized" },
+      { label: "Frame", value: "Lightweight" },
+      { label: "Use", value: "Driving & outdoor" },
+    ],
   },
 
   // Beauty & Personal Care
@@ -183,18 +332,39 @@ export const products: Product[] = [
     description:
       "Rich, fast-absorbing lotion with pure shea butter for deep, all-day moisture. Unscented formula.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.6,
+    reviewCount: 33,
+    stockQty: 60,
+    specs: [
+      { label: "Base", value: "Pure shea butter" },
+      { label: "Absorption", value: "Fast" },
+      { label: "Fragrance", value: "Unscented" },
+    ],
   },
   {
     id: "p16",
     slug: "hair-straightener-brush",
     name: "Ionic Hair Straightener Brush",
     price: 27000,
+    oldPrice: 31000,
     category: "beauty-personal-care",
     images: ["/images/placeholder-16.jpg"],
     description:
       "Ceramic ionic straightening brush that smooths and shines in one pass. Five heat settings for every hair type.",
     badge: "Pre-Order",
     inStock: false,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.3,
+    reviewCount: 19,
+    stockQty: 0,
+    specs: [
+      { label: "Plate", value: "Ceramic ionic" },
+      { label: "Heat", value: "5 settings" },
+      { label: "Hair type", value: "All" },
+    ],
   },
   {
     id: "p17",
@@ -206,6 +376,15 @@ export const products: Product[] = [
     description:
       "Rechargeable beard trimmer and grooming set with multiple guards, scissors and a travel case.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.4,
+    reviewCount: 28,
+    stockQty: 16,
+    specs: [
+      { label: "Power", value: "Rechargeable" },
+      { label: "Includes", value: "Guards, scissors, case" },
+    ],
   },
 
   // Household Products
@@ -219,6 +398,15 @@ export const products: Product[] = [
     description:
       "Everything you need for a deep clean: antiseptic fluid, wipes and a spray bottle in one bundle.",
     inStock: true,
+    brand: "Dettol",
+    condition: "New",
+    rating: 4.5,
+    reviewCount: 47,
+    stockQty: 50,
+    specs: [
+      { label: "Contents", value: "Antiseptic, wipes, spray" },
+      { label: "Use", value: "Deep clean" },
+    ],
   },
   {
     id: "p19",
@@ -230,6 +418,16 @@ export const products: Product[] = [
     description:
       "Rechargeable LED bulbs that stay on during power cuts. Charges while the lights are on, glows when they are out.",
     inStock: true,
+    brand: "Generic",
+    condition: "New",
+    rating: 4.7,
+    reviewCount: 61,
+    stockQty: 22,
+    specs: [
+      { label: "Pack", value: "2 bulbs" },
+      { label: "Type", value: "Rechargeable LED" },
+      { label: "Behaviour", value: "Charges on mains, glows on outage" },
+    ],
   },
 ];
 
@@ -243,4 +441,21 @@ export function getProductById(id: string): Product | undefined {
 
 export function getProductsByCategory(categorySlug: string): Product[] {
   return products.filter((p) => p.category === categorySlug);
+}
+
+/**
+ * Item count per category slug. Every "N items" line in the category tiles and
+ * list reads from here, so no count is ever typed by hand and drifts from the
+ * catalogue.
+ */
+export function countProductsByCategory(): Record<string, number> {
+  return products.reduce<Record<string, number>>((counts, p) => {
+    counts[p.category] = (counts[p.category] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+/** Products carrying a compare-at price — powers the mobile "Deals" row. */
+export function getDealProducts(): Product[] {
+  return products.filter((p) => p.oldPrice !== undefined && p.inStock);
 }

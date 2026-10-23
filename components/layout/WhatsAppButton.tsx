@@ -1,9 +1,8 @@
 ﻿import Button from "@/components/ui/Button";
+import { WHATSAPP_LINK } from "@/lib/business";
 
 // Real WhatsApp chat intent: desktop opens WhatsApp Web, mobile opens the app.
-// The number is a placeholder — swap it for the client's real line before launch.
-const WHATSAPP_NUMBER = "2348000000000";
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
+// The number comes from lib/business.ts so it is defined exactly once.
 
 export function WhatsAppIcon({ size = 22 }: { size?: number }) {
   return (
@@ -22,25 +21,38 @@ export function WhatsAppIcon({ size = 22 }: { size?: number }) {
 interface WhatsAppButtonProps {
   label?: string;
   iconOnly?: boolean;
+  /** App-shell presentation: blue outline pill, sentence case. Implied by `iconOnly`. */
+  mobile?: boolean;
   className?: string;
 }
 
 // Composed from the Button primitive so it inherits the exact design tokens.
+//
+// `iconOnly` is used by the mobile action bar, where the labelled desktop form
+// would be too wide: it becomes a fixed 44px outline circle. The label is still
+// exposed as the accessible name. Nothing about the labelled desktop call sites
+// changes unless `mobile`/`iconOnly` is asked for.
 export default function WhatsAppButton({
   label = "Chat on WhatsApp",
   iconOnly = false,
+  mobile = false,
   className = "",
 }: WhatsAppButtonProps) {
+  const shell = mobile || iconOnly;
   return (
     <Button
       href={WHATSAPP_LINK}
-      variant="primary"
+      variant={shell ? "secondary" : "primary"}
+      tone={shell ? "primary" : "default"}
+      shape={shell ? "pill" : "md"}
+      labelCase={shell ? "none" : "upper"}
+      padding={iconOnly ? "square" : "normal"}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
       className={`gap-2 ${className}`}
     >
-      <WhatsAppIcon />
+      <WhatsAppIcon size={iconOnly ? 20 : 22} />
       {!iconOnly && <span>{label}</span>}
     </Button>
   );

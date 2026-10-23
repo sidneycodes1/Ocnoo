@@ -1,7 +1,13 @@
 ﻿import type { Product } from "@/types";
 import ProductCard from "@/components/product/ProductCard";
 
-export default function ProductGrid({ products }: { products: Product[] }) {
+export default function ProductGrid({
+  products,
+  className = "",
+}: {
+  products: Product[];
+  className?: string;
+}) {
   if (products.length === 0) {
     return (
       <p className="bg-surface rounded-xl shadow-soft p-6 text-center font-sans">
@@ -11,7 +17,12 @@ export default function ProductGrid({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 animate-fade-in md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+    <div
+      className={
+        "grid grid-cols-2 gap-3 animate-fade-in md:grid-cols-3 md:gap-4 lg:grid-cols-4" +
+        (className ? " " + className : "")
+      }
+    >
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
