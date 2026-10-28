@@ -44,7 +44,11 @@ function ListingTile({ listing }: { listing: Listing }) {
         <h3 className="line-clamp-2 font-sans text-sm font-bold leading-tight md:uppercase">
           {listing.title}
         </h3>
-        <p className="hidden truncate line-clamp-1 font-sans text-xs md:block">
+        {/* `truncate` alone, not `truncate line-clamp-1`: the `md:block` further
+            along overrides line-clamp's `display:-webkit-box`, so the clamp was
+            never in force. `truncate` gives the same single clipped line through
+            white-space + text-overflow, which no later display utility undoes. */}
+        <p className="hidden truncate font-sans text-xs md:block">
           {listingPlace(listing)}
           {category ? ` · ${category.name}` : ""}
         </p>

@@ -1,5 +1,5 @@
 import { getCategoryBySlug } from "@/data/categories";
-import { getCollection } from "@/data/collections";
+import { getCollectionMeta } from "@/data/collectionMeta";
 
 export type ScreenLayout = "title" | "search";
 
@@ -84,9 +84,12 @@ export function resolveScreen(pathname: string): MobileScreen {
   }
 
   // /collections/<key> — the full list behind a home section's "More >" link.
+  // Only the title is needed here, which is why it comes from the metadata file
+  // rather than the catalogue: the header is a client component and must not
+  // pull every product into the browser bundle to label a screen.
   const collectionMatch = pathname.match(/^\/collections\/([^/]+)$/);
   if (collectionMatch) {
-    const collection = getCollection(decodeURIComponent(collectionMatch[1]));
+    const collection = getCollectionMeta(decodeURIComponent(collectionMatch[1]));
     if (collection) {
       return {
         title: collection.title,
@@ -174,15 +177,20 @@ export function activeTab(pathname: string): TabKey | null {
  * Deterministic parent for the back arrow. Deliberately not `router.back()`:
  * a deep link or a shared URL has no history to go back to, which would leave
  * the arrow doing nothing.
+ *
+ * `search` is the current URL's query string, leading `?` included. Only the
+ * order pages need it: they are readable with the `?t=` token and nothing
+ * without it, so a back arrow that strips the query walks the customer out of
+ * their own order.
  */
-export function parentOf(pathname: string): string {
+export function parentOf(pathname: string, search = ""): string {
   if (pathname.startsWith("/product/")) return "/shop";
   if (pathname.startsWith("/shop/")) return "/shop";
   // Reached from a home section, so back goes home rather than to /shop, which
   // these pages are not part of.
   if (pathname.startsWith("/collections/")) return "/";
   if (/^\/track-order\/[^/]+\/history$/.test(pathname)) {
-    return pathname.replace(/\/history$/, "");
+    return pathname.replace(/\/history$/, "") + search;
   }
   if (pathname.startsWith("/track-order/")) return "/track-order";
   if (pathname === "/account/addresses/new") return "/account/addresses";

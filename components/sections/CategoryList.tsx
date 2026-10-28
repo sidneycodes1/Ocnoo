@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { categories } from "@/data/categories";
-import { countProductsByCategory, products } from "@/data/products";
+import { countByCategory } from "@/lib/catalog";
+import type { Product } from "@/types";
 import PlaceholderImage from "@/components/ui/PlaceholderImage";
 import { ChevronRightIcon } from "@/components/ui/icons";
 
@@ -17,9 +18,13 @@ function itemLabel(count: number): string {
  * "All Products" is the first row because the bare /shop route now lists
  * categories - the whole catalogue needs an explicit entry, and `?view=all` is
  * how the page tells the two apart.
+ *
+ * The counts come from the published catalogue passed in, so a category with
+ * nothing published reads "0 items" instead of advertising stock the admin
+ * has already hidden.
  */
-export default function CategoryList() {
-  const counts = countProductsByCategory();
+export default function CategoryList({ products }: { products: Product[] }) {
+  const counts = countByCategory(products);
 
   const rows = [
     { key: "all", name: "All Products", href: "/shop?view=all", count: products.length },

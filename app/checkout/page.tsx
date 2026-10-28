@@ -6,8 +6,10 @@ import { useCart } from "@/context/CartContext";
 import { useOrders, type Order } from "@/context/OrdersContext";
 import { formatAddress, useAddresses, type Address } from "@/context/AddressesContext";
 import { useProfile } from "@/context/ProfileContext";
-import { formatNaira, generateOrderNumber } from "@/lib/utils";
+import { formatNaira } from "@/lib/utils";
 import { NG_STATES, getDeliveryQuote } from "@/lib/delivery";
+import { claimPayment, orderFromPlaced, placeOrder } from "@/lib/orders";
+import { trackEvent } from "@/lib/events";
 import { getLga } from "@/data/nigeria/locations";
 import { BUSINESS } from "@/lib/business";
 import Button from "@/components/ui/Button";
@@ -22,17 +24,24 @@ type PaymentMethod = "paystack" | "transfer";
 interface Delivery {
   name: string;
   phone: string;
+  email: string;
   address: string;
   state: string;
 }
 
-const emptyDelivery: Delivery = { name: "", phone: "", address: "", state: "" };
+const emptyDelivery: Delivery = { name: "", phone: "", email: "", address: "", state: "" };
+
+/** Matches the check inside `place_order`, so the two never disagree. */
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /** What a saved address looks like once it is dropped into the form. */
 function deliveryFrom(a: Address): Delivery {
   return {
     name: a.recipientName,
     phone: a.phone,
+    // Addresses do not carry an email, so this stays empty and the caller keeps
+    // whatever the customer already typed.
+    email: "",
     // The LGA belongs on the rider's line: "Ikeja" as a town and Ikeja as the
     // local government are different scopes, and the street alone is ambiguous.
     address: [a.address, a.city, a.lga ? getLga(a.lga)?.name ?? "" : ""]
@@ -57,9 +66,7 @@ function Field({
         {label}
       </span>
       {children}
-      {error && (
-        <span className="font-sans text-sm font-bold">Required field.</span>
-      )}
+      {error && <span className="font-sans text-sm font-bold">{error}</span>}
     </label>
   );
 }
@@ -81,18 +88,9 @@ function BankIcon() {
   );
 }
 
-/** Keep trying until the number is not already used on this device. */
-function uniqueOrderNumber(taken: (candidate: string) => boolean): string {
-  for (let i = 0; i < 8; i += 1) {
-    const candidate = generateOrderNumber();
-    if (!taken(candidate)) return candidate;
-  }
-  return `OCN-${Date.now().toString().slice(-6)}`;
-}
-
 export default function CheckoutPage() {
   const { lines, subtotal, clearCart, hydrated } = useCart();
-  const { addOrder, findByNumber } = useOrders();
+  const { addOrder, updateOrder } = useOrders();
   const {
     addresses,
     defaultAddress,
@@ -105,8 +103,15 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState<PaymentMethod | null>(null);
   const [attempted, setAttempted] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
+  /** True while the order is in flight, so the button cannot be double-fired. */
+  const [placing, setPlacing] = useState(false);
+  /** The RPC's refusal, in words the customer can act on. */
+  const [placeError, setPlaceError] = useState<string | null>(null);
   /** Which picker row is highlighted. Cleared the moment a field is typed in. */
   const [chosenId, setChosenId] = useState<string | null>(null);
+  /** In flight / refused, for the "I have made payment" declaration. */
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   // Step 1 is the same four questions on every order. Fill them from the
   // Address Book (or the saved profile for the contact rows) once the stores
@@ -121,11 +126,12 @@ export default function CheckoutPage() {
       return;
     }
     const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-    if (!fullName && !profile.phone) return;
+    if (!fullName && !profile.phone && !profile.email) return;
     setDelivery((d) => ({
       ...d,
       name: d.name || fullName,
       phone: d.phone || profile.phone,
+      email: d.email || profile.email,
     }));
   }, [hydrated, addressesHydrated, profileHydrated, defaultAddress, profile]);
 
@@ -137,7 +143,9 @@ export default function CheckoutPage() {
 
   function applyAddress(a: Address) {
     setChosenId(a.id);
-    setDelivery(deliveryFrom(a));
+    // An address book row has no email, so picking one must not erase the
+    // address the customer already typed above it.
+    setDelivery((d) => ({ ...deliveryFrom(a), email: d.email }));
   }
 
   if (!hydrated) {
@@ -160,8 +168,8 @@ export default function CheckoutPage() {
             Thank you!
           </h1>
           <p className="mt-2 font-sans">
-            Your order has been received. This is a demo — no payment was taken
-            and nothing was actually sold.
+            Your order has been received and is on the shop&apos;s dashboard
+            now. This is a demo — no payment was taken.
           </p>
 
           <div className="mt-6 bg-surface rounded-xl p-4">
@@ -170,8 +178,76 @@ export default function CheckoutPage() {
             </p>
             <p className="font-mono text-2xl font-bold">{order.orderNumber}</p>
             <p className="mt-1 font-sans text-xs text-black/50">
-              Saved on this device. Use it on the Track Order page.
+              Keep this number. With the phone number you entered, it tracks the
+              order from any device.
             </p>
+          </div>
+
+          {/* Payment. The order is already written at this point, so declaring a
+              transfer is an honest separate step rather than a fake "paid" tick:
+              the customer reports what they did, the shop confirms the money. */}
+          <div className="mt-6 rounded-xl border border-line bg-white p-4">
+            {order.payment === "paystack" ? (
+              <p className="font-sans text-sm text-black/60">
+                Paystack was selected. Nothing is charged in this demo, so the
+                order is recorded as awaiting payment.
+              </p>
+            ) : order.paymentStatus === "confirmed" ? (
+              <p className="font-sans text-sm font-bold">
+                Payment confirmed by the shop.
+              </p>
+            ) : order.paymentStatus === "claimed" ? (
+              <>
+                <p className="font-sans text-sm font-bold">
+                  You told us the transfer is on its way.
+                </p>
+                <p className="mt-1 font-sans text-[11px] leading-relaxed text-black/50">
+                  The shop checks the funds before anything is packed, so the
+                  order stays here until that happens.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-sans text-sm">
+                  Transfer{" "}
+                  <span className="font-mono font-bold">
+                    {formatNaira(order.total)}
+                  </span>{" "}
+                  to {BUSINESS.bank.bankName}, account{" "}
+                  <span className="font-mono font-bold">
+                    {BUSINESS.bank.accountNumber}
+                  </span>{" "}
+                  ({BUSINESS.bank.accountName}).
+                </p>
+                <Button
+                  variant="primary"
+                  className="mt-3 w-full"
+                  disabled={claiming}
+                  onClick={() => void handleClaimPayment()}
+                >
+                  {claiming ? "Recording…" : "I Have Made Payment"}
+                </Button>
+                <p className="mt-2 font-sans text-[11px] leading-relaxed text-black/50">
+                  This tells the shop to look out for your transfer. It is not a
+                  confirmed payment until the funds arrive.
+                </p>
+              </>
+            )}
+
+            {claimError && (
+              <p
+                role="alert"
+                className="mt-3 rounded-lg bg-surface p-3 font-sans text-sm font-bold"
+              >
+                {claimError}
+              </p>
+            )}
+
+            {order.delivery.email && (
+              <p className="mt-3 font-sans text-[11px] leading-relaxed text-black/50">
+                A receipt for this order goes to {order.delivery.email}.
+              </p>
+            )}
           </div>
 
           {/* Mobile totals — delivery is quoted from the state entered in step 1. */}
@@ -229,7 +305,12 @@ export default function CheckoutPage() {
             <Button href="/shop" variant="primary">
               Continue Shopping
             </Button>
-            <Button href="/track-order" variant="secondary">
+            <Button
+              href={`/track-order/${encodeURIComponent(
+                order.orderNumber
+              )}?t=${encodeURIComponent(order.trackToken)}`}
+              variant="secondary"
+            >
               Track this order
             </Button>
             <WhatsAppButton label="Chat to Confirm" />
@@ -256,9 +337,14 @@ export default function CheckoutPage() {
     );
   }
 
+  const emailTrimmed = delivery.email.trim();
+  const emailOk = EMAIL_RE.test(emailTrimmed);
+
   const fieldsValid =
     delivery.name.trim() !== "" &&
     delivery.phone.trim() !== "" &&
+    emailTrimmed !== "" &&
+    emailOk &&
     delivery.address.trim() !== "" &&
     delivery.state !== "";
 
@@ -272,28 +358,74 @@ export default function CheckoutPage() {
     }
   }
 
-  function handlePlaceOrder() {
-    if (!payment) return;
-    const snapshot: Order = {
-      orderNumber: uniqueOrderNumber((n) => !!findByNumber(n)),
-      lines: lines.map((l) => ({
+  /**
+   * The only place the shop writes an order. The total on this page is a quote;
+   * `place_order` re-prices every line from the product rows and refuses stock
+   * it no longer has, so a failure here is a real answer rather than a bug -
+   * and it is shown, not swallowed.
+   */
+  async function handlePlaceOrder() {
+    if (!payment || placing) return;
+    setPlacing(true);
+    setPlaceError(null);
+
+    const input = {
+      customer: delivery,
+      zone: quote.zone,
+      payment,
+      items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
+    };
+
+    const result = await placeOrder(input);
+    if (!result.ok) {
+      setPlaceError(result.message);
+      // One event per failure, so the dashboard's "checkout errors today"
+      // counts refusals (sold out, unpublished, offline) and nothing else.
+      trackEvent("checkout_error", { path: "/checkout" });
+      setPlacing(false);
+      return;
+    }
+
+    const snapshot = orderFromPlaced(
+      result.order,
+      input,
+      lines.map((l) => ({
         name: l.product.name,
         quantity: l.quantity,
         lineTotal: l.lineTotal,
-      })),
-      subtotal,
-      deliveryFee: quote.fee,
-      total,
-      zone: quote.zone,
-      delivery,
-      payment,
-      status: "placed",
-      createdAt: new Date().toISOString(),
-    };
+      }))
+    );
+    // The server has the order; this copy only feeds "My Purchases" on this
+    // device and is refreshed against the database on the next visit.
     addOrder(snapshot);
     setOrder(snapshot);
     clearCart();
     setStep(3);
+  }
+
+  /**
+   * Declares a transfer the customer says they made. The order already exists
+   * by this point, so this is a real write with a real consequence: the shop's
+   * dashboard shows it as claimed instead of idle. It deliberately does not
+   * say the money arrived - only the shop can confirm that, and saying so from
+   * the browser would be a lie the database would believe.
+   */
+  async function handleClaimPayment() {
+    if (!order || claiming) return;
+    setClaiming(true);
+    setClaimError(null);
+
+    const result = await claimPayment(order.orderNumber, order.trackToken);
+    if (result === "ok") {
+      const paidAt = new Date().toISOString();
+      setOrder({ ...order, paymentStatus: "claimed", paidAt });
+      updateOrder(order.orderNumber, { paymentStatus: "claimed", paidAt });
+    } else if (result === "cancelled") {
+      setClaimError("That order was cancelled, so there is nothing left to pay for.");
+    } else {
+      setClaimError("We could not record that just now. Check your connection and try again.");
+    }
+    setClaiming(false);
   }
 
   return (
@@ -380,7 +512,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <Field label="Full name" error={attempted && !delivery.name.trim() ? "req" : undefined}>
+          <Field label="Full name" error={attempted && !delivery.name.trim() ? "Required field." : undefined}>
             <Input
               value={delivery.name}
               onChange={(e) => editDelivery("name", e.target.value)}
@@ -388,7 +520,7 @@ export default function CheckoutPage() {
             />
           </Field>
 
-          <Field label="Phone" error={attempted && !delivery.phone.trim() ? "req" : undefined}>
+          <Field label="Phone" error={attempted && !delivery.phone.trim() ? "Required field." : undefined}>
             <Input
               type="tel"
               inputMode="tel"
@@ -398,7 +530,30 @@ export default function CheckoutPage() {
             />
           </Field>
 
-          <Field label="Delivery address" error={attempted && !delivery.address.trim() ? "req" : undefined}>
+          {/* Asked for because it is the only channel that can carry an order
+              receipt. The shop still calls or messages to confirm; this is what
+              makes the confirmation survive after the tab is closed. */}
+          <Field
+            label="Email"
+            error={
+              attempted && !emailTrimmed
+                ? "Required field."
+                : attempted && !emailOk
+                  ? "That does not look like an email address."
+                  : undefined
+            }
+          >
+            <Input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={delivery.email}
+              onChange={(e) => editDelivery("email", e.target.value)}
+              placeholder="you@example.com"
+            />
+          </Field>
+
+          <Field label="Delivery address" error={attempted && !delivery.address.trim() ? "Required field." : undefined}>
             <Input
               value={delivery.address}
               onChange={(e) => editDelivery("address", e.target.value)}
@@ -406,7 +561,7 @@ export default function CheckoutPage() {
             />
           </Field>
 
-          <Field label="State" error={attempted && !delivery.state ? "req" : undefined}>
+          <Field label="State" error={attempted && !delivery.state ? "Required field." : undefined}>
             <Select
               options={NG_STATES}
               placeholder="Select a state…"
@@ -528,17 +683,26 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {placeError && (
+            <p
+              role="alert"
+              className="rounded-xl border-2 border-black bg-white p-4 font-sans text-sm leading-relaxed"
+            >
+              {placeError}
+            </p>
+          )}
+
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:justify-between">
             <Button variant="secondary" onClick={() => setStep(1)} className="w-full md:w-auto">
               Back
             </Button>
             <Button
               variant="primary"
-              disabled={!payment}
-              onClick={handlePlaceOrder}
+              disabled={!payment || placing}
+              onClick={() => void handlePlaceOrder()}
               className="w-full md:w-auto"
             >
-              Place Order
+              {placing ? "Placing order…" : "Place Order"}
             </Button>
           </div>
         </div>

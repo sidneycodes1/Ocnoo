@@ -7,28 +7,25 @@ import { useQuickAdd } from "@/components/product/useQuickAdd";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import PriceTag from "@/components/ui/PriceTag";
+import ProductCardMeta from "@/components/product/ProductCardMeta";
+import ProductImage from "@/components/product/ProductImage";
 import SaveButton from "@/components/ui/SaveButton";
-import { PlusIcon } from "@/components/ui/icons";
+import { CheckIcon, PlusIcon } from "@/components/ui/icons";
 
-// Placeholder photo frame: no real image files exist yet (added later),
-// so we render an on-brand soft-grey tile instead of a broken <img>.
-// The outer box clips; the inner one is what scales on card hover, so the
-// zoom can never bleed over the title underneath it.
-function ImageFrame() {
+// The photo box: real Storage photo when the listing has one, the placeholder
+// frame when it does not. The outer box clips; the inner one is what scales on
+// card hover, so the zoom can never bleed over the title underneath it.
+function ImageFrame({ product }: { product: Product }) {
   return (
     <div className="aspect-square w-full overflow-hidden bg-surface">
-      <div className="flex h-full w-full items-center justify-center transition-transform duration-300 ease-out motion-safe:lg-hover:group-hover:scale-[1.05]">
-        <div className="flex flex-col items-center gap-2 text-black">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-          </svg>
-          <span className="font-sans text-[10px] uppercase tracking-[0.2em]">
-            Photo coming
-          </span>
-        </div>
+      <div className="h-full w-full transition-transform duration-300 ease-out motion-safe:lg-hover:group-hover:scale-[1.05]">
+        <ProductImage
+          paths={product.images}
+          alt={product.name}
+          className="h-full w-full bg-surface"
+          iconSize={48}
+          label="No photo yet"
+        />
       </div>
     </div>
   );
@@ -89,23 +86,7 @@ export default function ProductCard({ product }: { product: Product }) {
           aria-label={`Add ${product.name} to cart`}
           className="pointer-events-auto absolute bottom-1.5 right-1.5 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-soft active:scale-95 disabled:opacity-40 motion-safe:transition-transform motion-safe:duration-150"
         >
-          {added ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          ) : (
-            <PlusIcon size={20} />
-          )}
+          {added ? <CheckIcon size={20} /> : <PlusIcon size={20} />}
         </button>
       </div>
 
@@ -114,23 +95,13 @@ export default function ProductCard({ product }: { product: Product }) {
         className="flex flex-1 flex-col"
         aria-label={product.name}
       >
-        <ImageFrame />
-        <div className="flex flex-1 flex-col gap-1 p-2 md:p-3">
-          <h3 className="line-clamp-2 font-sans text-sm font-bold leading-tight md:uppercase">
-            {product.name}
-          </h3>
-          {/* Description + Add-to-Cart are desktop-only chrome; mobile stays image-forward. */}
-          <p className="hidden line-clamp-1 font-sans text-xs md:block">
-            {product.description}
-          </p>
-          <p className="mt-auto pt-1 md:pt-2">
-            <PriceTag
-              price={product.price}
-              oldPrice={product.oldPrice}
-              tone="shell"
-            />
-          </p>
-        </div>
+        <ImageFrame product={product} />
+        <ProductCardMeta
+          product={product}
+          showDescription
+          desktopUppercase
+          className="p-2 md:p-3"
+        />
       </Link>
 
       <div className="mt-auto hidden p-3 pt-0 md:block">

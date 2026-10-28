@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "@/types";
-import { getProductById } from "@/data/products";
+import { useCatalog } from "@/context/CatalogProvider";
 
 // Mirrors CartContext exactly: hydrate once from localStorage, persist after
 // hydration, drop ids that no longer exist in the catalogue.
@@ -30,6 +30,7 @@ interface SavedContextValue {
 const SavedContext = createContext<SavedContextValue | null>(null);
 
 export function SavedProvider({ children }: { children: ReactNode }) {
+  const { getProduct } = useCatalog();
   const [ids, setIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -39,14 +40,14 @@ export function SavedProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as string[];
         if (Array.isArray(parsed)) {
-          setIds(parsed.filter((id) => typeof id === "string" && getProductById(id)));
+          setIds(parsed.filter((id) => typeof id === "string" && getProduct(id)));
         }
       }
     } catch {
       /* ignore malformed storage */
     }
     setHydrated(true);
-  }, []);
+  }, [getProduct]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -57,12 +58,15 @@ export function SavedProvider({ children }: { children: ReactNode }) {
     }
   }, [ids, hydrated]);
 
-  const toggle = useCallback((id: string) => {
-    if (!getProductById(id)) return;
-    setIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
+  const toggle = useCallback(
+    (id: string) => {
+      if (!getProduct(id)) return;
+      setIds((prev) =>
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      );
+    },
+    [getProduct]
+  );
 
   const remove = useCallback((id: string) => {
     setIds((prev) => prev.filter((x) => x !== id));
@@ -76,8 +80,8 @@ export function SavedProvider({ children }: { children: ReactNode }) {
   );
 
   const products = useMemo(
-    () => ids.map((id) => getProductById(id)).filter((p): p is Product => !!p),
-    [ids]
+    () => ids.map((id) => getProduct(id)).filter((p): p is Product => !!p),
+    [ids, getProduct]
   );
 
   const value: SavedContextValue = {

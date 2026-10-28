@@ -101,7 +101,12 @@ function CartButton() {
 
 export default function MobileHeader() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const screen = resolveScreen(pathname);
+  // Carried to `parentOf` so the back arrow out of a package history keeps the
+  // order's `?t=` token.
+  const query = searchParams.toString();
+  const search = query ? `?${query}` : "";
 
   if (screen.layout === "search") {
     // One row, like the reference bar: wordmark, search, cart. The brand row
@@ -135,7 +140,7 @@ export default function MobileHeader() {
         <div className="flex w-11 shrink-0 justify-start">
           {screen.back && (
             <Link
-              href={parentOf(pathname)}
+              href={parentOf(pathname, search)}
               aria-label="Back"
               className="flex h-11 w-11 items-center justify-center text-black"
             >

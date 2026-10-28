@@ -1,13 +1,14 @@
-"use client";
-
 import Link from "next/link";
-import { useOrders } from "@/context/OrdersContext";
-import type { OrderStatus } from "@/context/OrdersContext";
-import { LADDER, longDate, statusNote, stepIndex } from "@/lib/orderStatus";
+import { getOrderByToken } from "@/lib/orders";
+import type { Order } from "@/lib/orders";
+import { LADDER, longDate, PAYMENT_LABEL, paymentNote, statusNote, stepIndex } from "@/lib/orderStatus";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import ContactMenu from "@/components/layout/ContactMenu";
 import { ArrowLeftIcon } from "@/components/ui/icons";
+
+// Same rule as the detail screen: read with the link's token, per request.
+export const dynamic = "force-dynamic";
 
 interface Node {
   label: string;
@@ -25,12 +26,7 @@ interface Node {
  * Only the first rung carries a date: an order records when it was placed and,
  * if cancelled, when that happened. Dating every rung would be invention.
  */
-function buildNodes(order: {
-  createdAt: string;
-  status: OrderStatus;
-  cancelledFrom?: Exclude<OrderStatus, "cancelled">;
-  cancelledAt?: string;
-}): Node[] {
+function buildNodes(order: Order): Node[] {
   const cancelled = order.status === "cancelled";
   const cut = cancelled
     ? Math.max(
@@ -66,23 +62,16 @@ function buildNodes(order: {
   return nodes;
 }
 
-export default function PackageHistoryPage({
+export default async function PackageHistoryPage({
   params,
+  searchParams,
 }: {
   params: { number: string };
+  searchParams: { t?: string };
 }) {
-  const { orders, hydrated } = useOrders();
-
-  if (!hydrated) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center font-sans">
-        Loading…
-      </div>
-    );
-  }
-
-  const wanted = decodeURIComponent(params.number).trim().toLowerCase();
-  const order = orders.find((o) => o.orderNumber.toLowerCase() === wanted);
+  const number = decodeURIComponent(params.number).trim();
+  const token = (searchParams.t ?? "").trim();
+  const order = token ? await getOrderByToken(number, token) : null;
 
   if (!order) {
     return (
@@ -92,10 +81,14 @@ export default function PackageHistoryPage({
         </h1>
         <Card bordered className="flex flex-col gap-4 p-6">
           <p className="font-sans text-lg font-bold">
-            That order is not saved on this device.
+            That order could not be opened from this link.
+          </p>
+          <p className="font-sans text-sm leading-relaxed text-black/60">
+            Tracking links carry a private key. Open the order again with your
+            order number and the phone number you used at checkout.
           </p>
           <Button href="/track-order" variant="primary" className="self-start">
-            Back to your orders
+            Track an order
           </Button>
         </Card>
       </div>
@@ -103,11 +96,14 @@ export default function PackageHistoryPage({
   }
 
   const nodes = buildNodes(order);
+  const backTo = `/track-order/${encodeURIComponent(
+    order.orderNumber
+  )}?t=${encodeURIComponent(token)}`;
 
   return (
     <div className="mx-auto max-w-2xl animate-fade-in px-4 pb-8 pt-3 md:py-8">
       <Link
-        href={`/track-order/${encodeURIComponent(order.orderNumber)}`}
+        href={backTo}
         className="mb-4 hidden min-h-[44px] items-center gap-1.5 font-sans text-sm font-bold uppercase tracking-wide hover:underline hover:underline-offset-4 md:inline-flex"
       >
         <ArrowLeftIcon size={16} />
@@ -175,9 +171,32 @@ export default function PackageHistoryPage({
         </ol>
       </Card>
 
+      {/* Money is a parallel track, not a rung of the ladder. Folding it in
+          above would imply the transfer has to happen between "placed" and
+          "packed", which it does not - and it would steal the single "current"
+          marker from the step the parcel is actually on. */}
+      <Card bordered className="mt-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-sans text-xs uppercase tracking-wide text-black/50">
+            Payment
+          </p>
+          <span className="rounded-full border border-line px-2.5 py-1 font-sans text-[11px] font-bold uppercase tracking-wide">
+            {PAYMENT_LABEL[order.paymentStatus]}
+          </span>
+        </div>
+        <p className="mt-2 font-sans text-sm leading-relaxed text-black/70">
+          {paymentNote(order)}
+        </p>
+        {order.paidAt && (
+          <p className="mt-1 font-sans text-xs text-black/45">
+            Declared {longDate(order.paidAt)}
+          </p>
+        )}
+      </Card>
+
       <p className="mt-4 font-sans text-xs leading-relaxed text-black/55">
-        {statusNote(order)} There is no courier tracking number to follow — this
-        demo records the order on your device only.
+        {statusNote(order)} There is no courier tracking number to follow — the
+        steps above are the shop&apos;s own record of the order.
       </p>
 
       <ContactMenu variant="pill" className="mt-4" />

@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCategoryBySlug } from "@/data/categories";
+import { getPublishedProducts } from "@/lib/catalog";
 import ShopBrowser from "@/components/product/ShopBrowser";
 import { isSortKey } from "@/lib/sort";
 
@@ -16,10 +17,11 @@ export function generateMetadata({ params }: Props): Metadata {
   };
 }
 
-export default function ShopCategoryPage({ params, searchParams }: Props) {
+export default async function ShopCategoryPage({ params, searchParams }: Props) {
   const cat = getCategoryBySlug(params.category);
   if (!cat) notFound();
 
+  const products = await getPublishedProducts();
   const q = (searchParams.q ?? "").trim();
   const sort = isSortKey(searchParams.sort) ? searchParams.sort : "relevance";
 
@@ -36,7 +38,7 @@ export default function ShopCategoryPage({ params, searchParams }: Props) {
       {/* The result cards title themselves with <h3>; this keeps the outline at
           h1 -> h2 -> h3 instead of skipping a level. */}
       <h2 className="sr-only">Products in {cat.name}</h2>
-      <ShopBrowser initialCategory={cat.slug} query={q} sort={sort} />
+      <ShopBrowser products={products} initialCategory={cat.slug} query={q} sort={sort} />
     </div>
   );
 }

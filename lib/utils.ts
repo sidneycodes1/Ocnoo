@@ -1,4 +1,5 @@
-﻿// Formatting + demo helpers. No backend — these are pure client-safe utilities.
+﻿// Formatting helpers. These are pure client-safe functions; order numbers are
+// now allocated by the database (public.order_number_seq), not here.
 
 /**
  * Format a whole-Naira amount like `₦14,000` (comma thousands, no decimals).
@@ -12,10 +13,24 @@ export function formatNaira(amount: number): string {
 }
 
 /**
- * Generate a believable, random order number like `OCN-83920` (5 digits).
- * Demo-only — not persisted anywhere.
+ * Brand name → the `?brand=` slug the shop filters on. Lives here because the
+ * product page builds that link and the shop page reads it; a private copy of
+ * the same transform in each would eventually disagree, and the failure would
+ * be a brand link that silently returns "No matches".
  */
-export function generateOrderNumber(): string {
-  const digits = Math.floor(10000 + Math.random() * 90000); // 10000–99999
-  return `OCN-${digits}`;
+export function brandSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
+ * Whole-percent saving against a compare-at price, or `null` when there is
+ * nothing worth badge-ing. Rounded DOWN so a badge can never overstate the
+ * discount, and null for an old price that is not actually higher — the
+ * catalogue is hand-maintained and a reversed pair would otherwise render as
+ * "-300%".
+ */
+export function discountPct(price: number, oldPrice?: number): number | null {
+  if (oldPrice === undefined || oldPrice <= 0 || oldPrice <= price) return null;
+  const pct = Math.floor(((oldPrice - price) / oldPrice) * 100);
+  return pct > 0 ? pct : null;
 }

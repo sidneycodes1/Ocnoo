@@ -1,33 +1,48 @@
 ﻿"use client";
 
-import { Suspense, useEffect, useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useOrders } from "@/context/OrdersContext";
+import { trackOrder } from "@/lib/orders";
+import { supabaseConfigured } from "@/lib/supabase";
 import { TABS, ordersInTab, type TabKey } from "@/lib/orderStatus";
 import OrderRow from "@/components/order/OrderRow";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 
+type Lookup = "idle" | "searching" | "missed" | "offline";
+
 /**
- * Turns a typed order number into the detail screen. When the number matches an
- * order on this device it navigates, so a deep link and a typed number end up in
- * exactly the same place. When it does not match, the caller shows its own
- * message - this demo has no server to ask.
+ * Number + phone, for any device. The pair is checked inside the database
+ * function, which returns the order only when the last ten digits of the phone
+ * match - so the form can confirm an order without ever exposing the table.
+ * On a hit the browser moves to the detail screen carrying the order's random
+ * token, which is what every later refresh uses.
  */
 function NumberLookup({ autoFocus = false }: { autoFocus?: boolean }) {
-  const { findByNumber } = useOrders();
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [missed, setMissed] = useState(false);
+  const [number, setNumber] = useState("");
+  const [phone, setPhone] = useState("");
+  const [lookup, setLookup] = useState<Lookup>("idle");
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    const match = findByNumber(query);
-    if (match) {
-      router.push(`/track-order/${encodeURIComponent(match.orderNumber)}`);
+    if (!number.trim() || !phone.trim() || lookup === "searching") return;
+    if (!supabaseConfigured) {
+      setLookup("offline");
       return;
     }
-    setMissed(true);
+    setLookup("searching");
+    const found = await trackOrder(number.trim(), phone.trim());
+    if (!found) {
+      setLookup("missed");
+      return;
+    }
+    router.push(
+      `/track-order/${encodeURIComponent(found.orderNumber)}?t=${encodeURIComponent(
+        found.trackToken
+      )}`
+    );
   }
 
   return (
@@ -37,27 +52,62 @@ function NumberLookup({ autoFocus = false }: { autoFocus?: boolean }) {
           Order number
         </span>
         <Input
-          value={query}
+          value={number}
           onChange={(e) => {
-            setQuery(e.target.value);
-            setMissed(false);
+            setNumber(e.target.value);
+            setLookup("idle");
           }}
           placeholder="OCN-00000"
           autoComplete="off"
           autoFocus={autoFocus || undefined}
         />
       </label>
-      <Button type="submit" variant="primary" className="self-start">
-        Track
+
+      <label className="flex flex-col gap-1">
+        <span className="font-sans text-sm font-bold uppercase tracking-wide">
+          Phone number used
+        </span>
+        <Input
+          type="tel"
+          inputMode="tel"
+          value={phone}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            setLookup("idle");
+          }}
+          placeholder="e.g. 08000000000"
+          autoComplete="tel"
+        />
+      </label>
+
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={lookup === "searching" || !number.trim() || !phone.trim()}
+        className="self-start"
+      >
+        {lookup === "searching" ? "Looking…" : "Track"}
       </Button>
-      {missed && (
+
+      {lookup === "missed" && (
         <p
           role="status"
-          className="rounded-xl border border-line bg-surface p-3 font-sans text-sm"
+          className="rounded-xl border border-line bg-surface p-3 font-sans text-sm leading-relaxed"
         >
-          No order with that number is saved on this device. Orders are stored in
-          this browser only, so one placed on another device or in another browser
-          will not appear here.
+          No order matches that number and phone number. Check the order number
+          on your confirmation screen, and use the same phone number you entered
+          at checkout.
+        </p>
+      )}
+
+      {lookup === "offline" && (
+        <p
+          role="status"
+          className="rounded-xl border border-line bg-surface p-3 font-sans text-sm leading-relaxed"
+        >
+          This build is not connected to the shop&apos;s database yet, so
+          tracking is unavailable. Orders placed on this device still appear
+          below.
         </p>
       )}
     </form>
@@ -66,17 +116,7 @@ function NumberLookup({ autoFocus = false }: { autoFocus?: boolean }) {
 
 function TrackOrderBody() {
   const { orders, hydrated } = useOrders();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [tab, setTab] = useState<TabKey>("ongoing");
-
-  // A ?number= link (from an old bookmark or a shared URL) resolves to the
-  // detail screen rather than rendering a second, weaker version of it here.
-  const number = searchParams.get("number");
-  useEffect(() => {
-    if (!hydrated || !number) return;
-    router.replace(`/track-order/${encodeURIComponent(number.trim())}`);
-  }, [hydrated, number, router]);
 
   if (!hydrated) {
     return (
@@ -84,17 +124,14 @@ function TrackOrderBody() {
     );
   }
 
-  if (number) return null;
-
   // Nobody has ordered on this device: the number form is the whole screen, and
   // there is nothing to list.
   if (orders.length === 0) {
     return (
       <div className="flex flex-col gap-6">
         <p className="rounded-xl border border-line bg-surface p-4 font-sans text-sm leading-relaxed">
-          You have not placed an order in this browser, so there is nothing to
-          track yet. Orders are saved on the device they were placed on — this
-          demo has no account system that could carry them across.
+          No orders on this device yet. If you have an order number, open it
+          below with the phone number you used at checkout.
         </p>
         <div className="border-t border-line pt-6">
           <h2 className="mb-3 font-sans text-sm font-bold uppercase tracking-wide">
@@ -173,7 +210,7 @@ function TrackOrderBody() {
 
       <details className="border-t border-line pt-4">
         <summary className="min-h-[44px] cursor-pointer list-none font-sans text-sm font-bold uppercase tracking-wide [&::-webkit-details-marker]:hidden">
-          Track an order number from another device
+          Track an order placed on another device
         </summary>
         <div className="pt-3">
           <NumberLookup />
@@ -190,14 +227,11 @@ export default function TrackOrderPage() {
         Track Your Orders
       </h1>
       <p className="mb-6 font-sans text-sm text-black/60">
-        Every order placed in this browser, newest first.
+        Orders placed in this browser, newest first — or any order number you
+        have from another device.
       </p>
 
-      {/* useSearchParams bails the route out of static rendering unless it sits
-          under a Suspense boundary. */}
-      <Suspense fallback={null}>
-        <TrackOrderBody />
-      </Suspense>
+      <TrackOrderBody />
     </div>
   );
 }

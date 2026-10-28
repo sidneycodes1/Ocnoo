@@ -26,7 +26,7 @@ interface PolicyContentsProps {
  *
  * The "have I passed this heading yet" line is read off each section's own
  * computed `scroll-margin-top` — the same value the browser uses when it lands
- * an anchor jump, which globals.css derives from `--policy-stack`. Deriving it
+ * an anchor jump, which globals.css derives from `--header-stack`. Deriving it
  * from anywhere else drifts: an earlier version used the header height plus a
  * different allowance and marked the section *before* the one you jumped to.
  */

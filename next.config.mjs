@@ -26,6 +26,13 @@ const nextConfig = {
             // not need either permission.
             value: "camera=(), microphone=(), geolocation=()",
           },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            // `same-origin-allow-popups`, not `same-origin`: the checkout opens
+            // a payment window, and a strict policy would sever the handle the
+            // popup needs to report back. Same value the admin panel ships.
+            value: "same-origin-allow-popups",
+          },
         ],
       },
     ];

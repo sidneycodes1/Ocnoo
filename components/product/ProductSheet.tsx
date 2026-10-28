@@ -3,20 +3,24 @@
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Product } from "@/types";
-import ProductDetail from "@/components/product/ProductDetail";
+import ProductSheetSummary from "@/components/product/ProductSheetSummary";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
- * The product sheet: the same ProductDetail the /product/[slug] route renders,
- * opened over the grid instead of replacing it.
+ * The product sheet: a condensed view of one listing, opened over the grid
+ * instead of replacing it.
  *
  * It reaches here through a Next.js intercepting route (`app/@modal/(.)product/
  * [slug]`), which only fires for in-app navigations. That distinction is the
  * whole point: a tap on a card slides this up over the list, while a shared
  * link, a paste into a new tab or a browser reload still gets the real
  * /product/[slug] page with a URL that stands on its own.
+ *
+ * It renders ProductSheetSummary rather than the full ProductDetail it used to
+ * embed: the page now carries a deep dive, a seller block and a section index,
+ * and none of that belongs in a 90vh sheet whose job is browse-and-dismiss.
  */
 export default function ProductSheet({ product }: { product: Product }) {
   const router = useRouter();
@@ -139,7 +143,7 @@ export default function ProductSheet({ product }: { product: Product }) {
           </button>
         </div>
 
-        <ProductDetail product={product} />
+        <ProductSheetSummary product={product} />
       </div>
     </div>
   );

@@ -6,70 +6,29 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import type { Order } from "@/lib/orders";
 
-// `cancelled` is a real state, not a decorative tab: it is only ever set through
-// cancelOrder below, which refuses once the order has shipped.
-export type OrderStatus =
-  | "placed"
-  | "packed"
-  | "dispatched"
-  | "delivered"
-  | "cancelled";
-
-export interface OrderLine {
-  name: string;
-  quantity: number;
-  lineTotal: number;
-}
-
-export interface OrderDelivery {
-  name: string;
-  phone: string;
-  address: string;
-  state: string;
-}
-
-export interface Order {
-  orderNumber: string;
-  lines: OrderLine[];
-  subtotal: number;
-  deliveryFee: number;
-  total: number;
-  /** Delivery zone the fee was quoted from, kept for the receipt display. */
-  zone: "A" | "B" | "C";
-  delivery: OrderDelivery;
-  payment: "paystack" | "transfer";
-  status: OrderStatus;
-  /** ISO timestamp, set when the order was placed. */
-  createdAt: string;
-  /** ISO timestamp, set by cancelOrder. Absent on every order not cancelled. */
-  cancelledAt?: string;
-  /**
-   * The rung the order had reached when it was cancelled. Kept because
-   * `status` alone cannot tell the history screen how far the ladder got
-   * before it stopped.
-   */
-  cancelledFrom?: Exclude<OrderStatus, "cancelled">;
-}
-
-/**
- * The last status a customer can still cancel from. Once an order is dispatched
- * it is with the courier, so the cancel control is not rendered at all rather
- * than shown and disabled - that is what the marketplaces do, and it avoids
- * promising a cancellation that cannot happen.
- */
-export const CANCELLABLE: OrderStatus[] = ["placed", "packed"];
+export type { Order, OrderDelivery, OrderLine, OrderStatus, PaymentStatus } from "@/lib/orders";
 
 interface OrdersContextValue {
+  /**
+   * Orders placed in this browser. The database is the authority on everything
+   * that can change (status, cancellation); this list is the shortcut that lets
+   * a returning customer see their own orders without retyping a phone number.
+   */
   orders: Order[];
   hydrated: boolean;
   addOrder: (order: Order) => void;
-  findByNumber: (orderNumber: string) => Order | undefined;
-  /** Returns false when the order is unknown or already too far to cancel. */
-  cancelOrder: (orderNumber: string) => boolean;
+  /**
+   * Patch one saved order after something on this device changed it — declaring
+   * a bank transfer, for instance. Without it the confirmation screen and the
+   * Purchases list would disagree with the database until the next page load.
+   */
+  updateOrder: (orderNumber: string, patch: Partial<Order>) => void;
 }
 
 // Same localStorage discipline as the cart: hydrate once, persist after, and
@@ -80,6 +39,9 @@ const OrdersContext = createContext<OrdersContextValue | null>(null);
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  // The status sweep runs once per page load, so a refresh cannot loop through
+  // setOrders below and re-fire every RPC.
+  const swept = useRef(false);
 
   useEffect(() => {
     try {
@@ -100,6 +62,47 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  // The stored copy was written at checkout time, so it still says "placed"
+  // after the shop packs or dispatches the parcel, and still says "awaiting"
+  // after the money is verified. One `track_order` call per saved order brings
+  // the list in line with the shared database; the detail screen re-reads the
+  // same order anyway, so a miss here only costs a stale chip, never a wrong
+  // answer.
+  useEffect(() => {
+    if (!hydrated || swept.current) return;
+    swept.current = true;
+    const snapshot = orders;
+    if (snapshot.length === 0) return;
+
+    void (async () => {
+      // Loaded on demand: a first-time visitor has no saved orders, and nobody
+      // should download the Supabase client for a sweep that cannot run.
+      const { trackOrder } = await import("@/lib/orders");
+      const refreshed = await Promise.all(
+        snapshot.map(async (order) => {
+          if (!order.trackToken || order.status === "cancelled") return order;
+          const live = await trackOrder(order.orderNumber, order.delivery.phone);
+          if (!live) return order;
+          const changed = live.status !== order.status || live.paymentStatus !== order.paymentStatus;
+          if (!changed) return order;
+          return {
+            ...order,
+            status: live.status,
+            paymentStatus: live.paymentStatus,
+            paidAt: live.paidAt,
+            cancelledAt: live.cancelledAt,
+            cancelledFrom: live.cancelledFrom,
+          };
+        })
+      );
+      if (refreshed.some((o, i) => o !== snapshot[i])) {
+        setOrders((prev) =>
+          prev.map((order) => refreshed.find((r) => r.orderNumber === order.orderNumber) ?? order)
+        );
+      }
+    })();
+  }, [hydrated, orders]);
+
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -117,46 +120,17 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => [order, ...prev]);
   }, []);
 
-  const findByNumber = useCallback(
-    (orderNumber: string) => {
-      const needle = orderNumber.trim().toLowerCase();
-      return orders.find((o) => o.orderNumber.toLowerCase() === needle);
-    },
-    [orders]
-  );
-
-  const cancelOrder = useCallback(
-    (orderNumber: string) => {
-      const target = orders.find(
-        (o) => o.orderNumber.toLowerCase() === orderNumber.trim().toLowerCase()
-      );
-      const from = target?.status;
-      // Narrowed explicitly rather than through CANCELLABLE.includes, which
-      // cannot tell the compiler that "cancelled" is not in the list.
-      if (!target || from === "cancelled" || !from || !CANCELLABLE.includes(from)) {
-        return false;
-      }
-      const cancelledAt = new Date().toISOString();
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.orderNumber === target.orderNumber
-            ? {
-                ...o,
-                status: "cancelled" as OrderStatus,
-                cancelledAt,
-                cancelledFrom: from,
-              }
-            : o
-        )
-      );
-      return true;
-    },
-    [orders]
-  );
+  const updateOrder = useCallback((orderNumber: string, patch: Partial<Order>) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.orderNumber === orderNumber ? { ...order, ...patch } : order
+      )
+    );
+  }, []);
 
   const value = useMemo<OrdersContextValue>(
-    () => ({ orders, hydrated, addOrder, findByNumber, cancelOrder }),
-    [orders, hydrated, addOrder, findByNumber, cancelOrder]
+    () => ({ orders, hydrated, addOrder, updateOrder }),
+    [orders, hydrated, addOrder, updateOrder]
   );
 
   return (

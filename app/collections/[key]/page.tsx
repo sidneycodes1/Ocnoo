@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { COLLECTIONS, getCollection } from "@/data/collections";
+import { getCollection } from "@/lib/catalog";
 import ProductTileGrid from "@/components/product/ProductTileGrid";
 import ProductGrid from "@/components/product/ProductGrid";
 
@@ -8,14 +8,8 @@ interface CollectionPageProps {
   params: { key: string };
 }
 
-// Three known keys, all prerendered. An unknown key falls through to notFound()
-// below rather than being given a page.
-export function generateStaticParams() {
-  return COLLECTIONS.map((collection) => ({ key: collection.key }));
-}
-
-export function generateMetadata({ params }: CollectionPageProps): Metadata {
-  const collection = getCollection(params.key);
+export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
+  const collection = await getCollection(params.key);
   return {
     title: collection
       ? `${collection.title} — OCNOO Online Store`
@@ -24,8 +18,11 @@ export function generateMetadata({ params }: CollectionPageProps): Metadata {
   };
 }
 
-export default function CollectionPage({ params }: CollectionPageProps) {
-  const collection = getCollection(params.key);
+export default async function CollectionPage({ params }: CollectionPageProps) {
+  // Three known keys; an unknown one falls through to notFound() below rather
+  // than being given a page. The order comes from the shared catalogue, so a
+  // newly published product lands in the right place on the next request.
+  const collection = await getCollection(params.key);
   if (!collection) notFound();
 
   return (

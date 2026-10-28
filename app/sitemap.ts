@@ -1,24 +1,30 @@
 import type { MetadataRoute } from "next";
 import { categories } from "@/data/categories";
-import { COLLECTIONS } from "@/data/collections";
-import { products } from "@/data/products";
+import { COLLECTION_META } from "@/data/collectionMeta";
+import { getPublishedProducts } from "@/lib/catalog";
 import { SITE_URL } from "@/lib/site";
 
+// Per request, like every other catalogue surface: an unpublished product must
+// leave the sitemap at the same moment it leaves the shop.
+export const dynamic = "force-dynamic";
+
 /**
- * Served at /sitemap.xml. Every entry is generated from the same data the pages
- * themselves resolve their params from, so a URL in here cannot 404 - a
- * hand-maintained list is the thing that rots.
+ * Served at /sitemap.xml. Every entry is generated from the same source the
+ * pages themselves resolve their params from - the published catalogue in the
+ * shared database - so a URL in here cannot 404 and an unpublished product does
+ * not sit in Google waiting for a re-crawl.
  *
  * Only crawlable surfaces appear. The browser-only screens in PRIVATE_PATHS are
  * excluded here as well as being disallowed in robots.txt and noindexed at the
  * route, because a sitemap entry is an invitation to fetch something that is
  * empty for everyone who did not create it.
  *
- * lastModified is build time, not per-row edit time: this catalogue ships inside
- * the code, so a page's content genuinely does change exactly when the build
- * does. Claiming finer-grained dates would be inventing them.
+ * lastModified is the request time, not per-row edit time: the catalogue is
+ * read per request, so "now" is the honest upper bound on when the content may
+ * have changed. It is not used as a freshness hint for caching.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await getPublishedProducts();
   const lastModified = new Date();
   const entry = (path: string, priority: number): MetadataRoute.Sitemap[number] => ({
     url: `${SITE_URL}${path}`,
@@ -46,7 +52,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...staticRoutes,
     ...categories.map((c) => entry(`/shop/${c.slug}`, 0.8)),
-    ...COLLECTIONS.map((c) => entry(`/collections/${c.key}`, 0.8)),
+    ...COLLECTION_META.map((c) => entry(`/collections/${c.key}`, 0.8)),
     ...products.map((p) => entry(`/product/${p.slug}`, 0.9)),
   ];
 }

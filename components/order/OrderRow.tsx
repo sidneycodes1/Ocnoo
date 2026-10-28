@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Order } from "@/context/OrdersContext";
 import { formatNaira } from "@/lib/utils";
-import { shortDate, statusNote, totalQuantity } from "@/lib/orderStatus";
+import { PAYMENT_LABEL, paymentNote, shortDate, statusNote, totalQuantity } from "@/lib/orderStatus";
 import Card from "@/components/ui/Card";
 import StatusChip from "@/components/order/StatusChip";
 
@@ -14,7 +14,14 @@ import StatusChip from "@/components/order/StatusChip";
  * Full line-by-line breakdown lives on the detail screen.
  */
 export default function OrderRow({ order }: { order: Order }) {
-  const href = `/track-order/${encodeURIComponent(order.orderNumber)}`;
+  // The token is what the detail page validates, so it travels in the link.
+  // A row saved before tokens existed still links to the number, which lands on
+  // the detail page's "this link is incomplete" state rather than a 404.
+  const href = order.trackToken
+    ? `/track-order/${encodeURIComponent(order.orderNumber)}?t=${encodeURIComponent(
+        order.trackToken
+      )}`
+    : `/track-order/${encodeURIComponent(order.orderNumber)}`;
   const first = order.lines[0];
   const extraLines = order.lines.length - 1;
   const qty = totalQuantity(order);
@@ -44,6 +51,15 @@ export default function OrderRow({ order }: { order: Order }) {
       <p className="font-sans text-xs leading-relaxed text-black/60">
         {statusNote(order)}
       </p>
+
+      {/* Money and parcel are different questions, so they get different lines.
+          A declared transfer must never read as a completed one. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-line px-2.5 py-1 font-sans text-[11px] font-bold uppercase tracking-wide">
+          {PAYMENT_LABEL[order.paymentStatus]}
+        </span>
+        <span className="font-sans text-[11px] text-black/55">{paymentNote(order)}</span>
+      </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
         <Link

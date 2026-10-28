@@ -1,14 +1,14 @@
-import { products } from "@/data/products";
 import { getCategoryBySlug } from "@/data/categories";
 import type { Product } from "@/types";
 import type { SortKey } from "@/lib/sort";
+import { brandSlug } from "@/lib/utils";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductList from "@/components/product/ProductList";
 import Button from "@/components/ui/Button";
 
-function slugifyBrand(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
+// The brand→slug transform used to live here as a private `slugifyBrand`. The
+// product page now builds the same link, so the function moved to lib/utils.ts
+// rather than being duplicated — see brandSlug().
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -41,6 +41,8 @@ function applySort(list: Product[], sort: SortKey): Product[] {
 }
 
 interface ShopBrowserProps {
+  /** The published catalogue, read on the server and handed down. */
+  products: Product[];
   initialCategory?: string;
   /** Free-text term from the header search (?q=). */
   query?: string;
@@ -58,6 +60,7 @@ interface ShopBrowserProps {
 // Category scoping is driven purely by the route (/shop/<slug>); the free-text
 // query narrows whatever the route selected, so both compose.
 export default function ShopBrowser({
+  products,
   initialCategory = "all",
   query = "",
   sort = "relevance",
@@ -71,7 +74,7 @@ export default function ShopBrowser({
     if (initialCategory !== "all" && p.category !== initialCategory) {
       return false;
     }
-    if (brand && slugifyBrand(p.brand ?? "") !== brand) return false;
+    if (brand && brandSlug(p.brand ?? "") !== brand) return false;
     if (tokens.length === 0) return true;
 
     const categoryName = getCategoryBySlug(p.category)?.name ?? p.category;

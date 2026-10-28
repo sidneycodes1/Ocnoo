@@ -1,22 +1,23 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductBySlug } from "@/data/products";
+import { getProductBySlug } from "@/lib/catalog";
 import ProductDetail from "@/components/product/ProductDetail";
 
 interface Props {
   params: { slug: string };
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const product = getProductBySlug(params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const product = await getProductBySlug(params.slug);
   return {
     title: product ? `${product.name} — OCNOO` : "Product — OCNOO",
+    description: product?.description.slice(0, 155),
   };
 }
 
-export default function ProductPage({ params }: Props) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductPage({ params }: Props) {
+  const product = await getProductBySlug(params.slug);
   if (!product) notFound();
 
   return (

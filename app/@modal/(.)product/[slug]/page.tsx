@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug } from "@/data/products";
+import { getProductBySlug } from "@/lib/catalog";
 import ProductSheet from "@/components/product/ProductSheet";
 
 interface Props {
@@ -13,8 +13,10 @@ interface Props {
  * route - they render app/product/[slug]/page.tsx as a full page, so the URL
  * keeps working on its own.
  */
-export default function ProductModalPage({ params }: Props) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductModalPage({ params }: Props) {
+  // An unpublished product 404s here too: the intercepted route reads the same
+  // catalogue as the full page, so hiding a product in the admin closes both.
+  const product = await getProductBySlug(params.slug);
   if (!product) notFound();
 
   return <ProductSheet product={product} />;

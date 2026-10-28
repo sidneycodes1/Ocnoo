@@ -32,14 +32,17 @@ export interface TileGeometry {
   rowUnit: number;
   /** Image-box heights in px. Few distinct values read as a calmer stagger. */
   imageHeights: readonly number[];
-  /** Reserved caption box: a 2-line name plus one price line. Verified by measurement. */
+  /**
+   * Reserved caption box: a 2-line name, a rating row and one price line.
+   * Verified by measurement.
+   */
   captionHeight: number;
   /**
-   * A tile that also shows a struck compare-at price reserves more. On mobile at
-   * the narrowest supported width (320px, tile 140px) the two amounts do not fit
-   * side by side, so PriceTag's `flex-wrap` row breaks - 8px of row gap plus a
-   * 16px line. Without the extra reserve the caption outgrows its span and the
-   * tile below it is overlapped.
+   * A tile that also shows a struck compare-at price and a discount chip
+   * reserves more. On mobile at the narrowest supported width (320px, tile
+   * 140px) the three amounts do not fit side by side, so PriceTag's `flex-wrap`
+   * row breaks - 8px of row gap plus a 16px line. Without the extra reserve the
+   * caption outgrows its span and the tile below it is overlapped.
    */
   captionHeightCompareAt: number;
   /** Caption padding in px, counted inside the reserved box. */
@@ -57,13 +60,20 @@ const MOBILE_IMAGE_HEIGHTS = [168, 210, 226, 266];
 /**
  * Two columns at 8px, the layout the mobile home page has always used. The
  * column is ~140-170px wide, so these heights sit between square and portrait.
+ *
+ * Caption heights, from the measured worst case at 390px: 8px padding x2, a
+ * 2-line 14px/1.25 title (35px), two 4px gaps, a 16px rating row and a 20px
+ * price line = 95px; with the compare-at and chip wrapping to a second price
+ * line, 119px. The reserves sit just above those so a tile never grows past its
+ * span, and the slack is the same on both — a taller reserve costs white space
+ * inside the card, a shorter one overlaps the tile below.
  */
 export const MOBILE_TILES: TileGeometry = {
   gap: 8,
   rowUnit: 2,
   imageHeights: MOBILE_IMAGE_HEIGHTS,
-  captionHeight: 88,
-  captionHeightCompareAt: 112,
+  captionHeight: 104,
+  captionHeightCompareAt: 128,
   captionPadding: 8,
   placeholderSize: 44,
 };
@@ -77,15 +87,15 @@ export const MOBILE_TILES: TileGeometry = {
  * At the 1152px content width a 4-column tile is 268px, so these heights land
  * between 1.25 and 1.67 portrait - the middle of Pinterest's measured 1.0-2.05
  * spread. The caption reserve is smaller than mobile's compare-at case because
- * the two prices fit on one line at this width; it only has to absorb the
- * narrower 3-column tile at 768px.
+ * the price, compare-at and discount chip fit on one line at this width; it only
+ * has to absorb the narrower 3-column tile at 768px.
  */
 export const DESKTOP_TILES: TileGeometry = {
   gap: 16,
   rowUnit: 2,
   imageHeights: [336, 392, 448],
-  captionHeight: 88,
-  captionHeightCompareAt: 104,
+  captionHeight: 112,
+  captionHeightCompareAt: 136,
   captionPadding: 12,
   placeholderSize: 64,
 };

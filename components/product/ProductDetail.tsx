@@ -1,28 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types";
-import { getCategoryBySlug } from "@/data/categories";
+import { getProductExtras } from "@/data/productExtras";
+import { BUSINESS } from "@/lib/business";
 import { useCart } from "@/context/CartContext";
 import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
-import PriceTag from "@/components/ui/PriceTag";
-import Rating from "@/components/ui/Rating";
-import SpecTable from "@/components/ui/SpecTable";
-import ProductGallery from "@/components/product/ProductGallery";
 import MobileStickyBar from "@/components/layout/MobileStickyBar";
-import WhatsAppButton from "@/components/layout/WhatsAppButton";
+import ProductBuyBox from "@/components/product/ProductBuyBox";
+import ProductDeepDive from "@/components/product/ProductDeepDive";
+import ProductGallery from "@/components/product/ProductGallery";
+import ProductShareRow from "@/components/product/ProductShareRow";
+import SellerCard from "@/components/product/SellerCard";
+import SectionTabs from "@/components/product/SectionTabs";
+import StickyMiniCard from "@/components/product/StickyMiniCard";
+import { DocIcon, ListIcon, MessagesIcon } from "@/components/ui/icons";
 
+/**
+ * Module-level so the reference is stable across renders. SectionTabs keys its
+ * scroll-spy effect on this array; rebuilding it on every qty change would tear
+ * down and re-add the scroll listeners for no reason.
+ *
+ * The ids must match the anchors rendered by ProductDeepDive.
+ */
+const SECTION_TABS = [
+  { id: "product-details", label: "Product details", icon: <DocIcon size={18} /> },
+  { id: "specifications", label: "Specifications", icon: <ListIcon size={18} /> },
+];
+
+/**
+ * The product page.
+ *
+ * Three columns from `lg` up — gallery, buy box, right rail — with the deep
+ * dive in row two, spanning the first two columns. The rail is deliberately
+ * placed in BOTH rows (`lg:row-span-2`) rather than dropped below the fold: a
+ * sticky element only stays pinned while its containing block is on screen, so
+ * a rail that lived next to the buy box alone would unpin exactly at the moment
+ * the section tabs become useful.
+ *
+ * Below `lg` the explicit placements fall away and DOM order is the reading
+ * order: gallery, buy box, seller + tabs, deep dive.
+ */
 export default function ProductDetail({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const { addItem } = useCart();
   const router = useRouter();
+  const ctaRef = useRef<HTMLDivElement>(null);
 
-  const categoryName = getCategoryBySlug(product.category)?.name;
-  const metaLine = [product.brand, categoryName].filter(Boolean).join(" • ");
-  const maxQty = product.stockQty && product.stockQty > 0 ? product.stockQty : 99;
+  const extras = getProductExtras(product);
 
   const handleAdd = () => {
     addItem(product.id, qty);
@@ -35,106 +62,70 @@ export default function ProductDetail({ product }: { product: Product }) {
     router.push("/checkout");
   };
 
+  const askHref = `https://wa.me/${BUSINESS.phoneDial}?text=${encodeURIComponent(
+    `Question about "${product.name}" on OCNOO`
+  )}`;
+
   return (
-    <div className="mx-auto max-w-6xl animate-fade-in px-4 py-4 md:px-4 md:py-8">
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8">
-        <ProductGallery product={product} />
+    <div className="mx-auto max-w-7xl animate-fade-in px-4 py-4 md:px-4 md:py-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,36%)_minmax(0,1fr)_19rem] lg:gap-8">
+        {/* ---- Column 1: imagery ---- */}
+        <div className="flex flex-col gap-5 lg:col-start-1 lg:row-start-1">
+          <ProductGallery product={product} labels={extras.imageLabels} />
+          <ProductShareRow product={product} />
+        </div>
 
-        <div className="flex flex-col gap-4">
-          {product.badge && (
-            <div>
-              <Badge>{product.badge}</Badge>
-            </div>
-          )}
-
-          <h1 className="font-sans text-2xl font-bold leading-snug md:text-3xl md:font-extrabold md:uppercase md:leading-tight">
-            {product.name}
-          </h1>
-
-          {/* Meta + rating are new on mobile; desktop keeps its existing form. */}
-          {metaLine && (
-            <p className="font-sans text-sm text-black/50 md:hidden">
-              {metaLine}
-              {product.condition && ` • Condition: ${product.condition}`}
-            </p>
-          )}
-
-          {product.rating !== undefined && (
-            <Rating
-              value={product.rating}
-              count={product.reviewCount}
-              className="md:hidden"
-            />
-          )}
-
-          <PriceTag
-            price={product.price}
-            oldPrice={product.oldPrice}
-            tone="shell"
-            size="xl"
+        {/* ---- Column 2: the decision ---- */}
+        <div className="lg:col-start-2 lg:row-start-1">
+          <ProductBuyBox
+            product={product}
+            extras={extras}
+            qty={qty}
+            onQtyChange={setQty}
+            onAdd={handleAdd}
+            added={added}
+            ctaRef={ctaRef}
           />
+        </div>
 
-          <p className="font-sans text-base leading-relaxed">
-            {product.description}
-          </p>
+        {/* ---- Column 3: seller, sections, persistent purchase ---- */}
+        <aside
+          aria-label="Seller and listing sections"
+          className="flex flex-col gap-4 lg:col-start-3 lg:row-span-2 lg:row-start-1"
+        >
+          <SellerCard seller={extras.seller} />
 
-          <p className="font-sans text-sm font-bold uppercase tracking-wide">
-            {product.inStock
-              ? product.stockQty && product.stockQty <= 5
-                ? `Only ${product.stockQty} left`
-                : "In stock"
-              : "Currently unavailable"}
-          </p>
+          <div className="pdp-rail flex flex-col gap-4">
+            <SectionTabs items={SECTION_TABS} />
+            <StickyMiniCard
+              product={product}
+              anchorRef={ctaRef}
+              added={added}
+              onAdd={handleAdd}
+            />
 
-          {/* Quantity selector */}
-          <div className="flex items-center gap-4 pt-2">
-            <span className="font-sans text-sm font-bold uppercase tracking-wide">
-              Qty
-            </span>
-            <div className="inline-flex shrink-0 items-center overflow-hidden border border-line rounded-md">
-              <button
-                type="button"
-                aria-label="Decrease quantity"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="h-11 w-11 text-xl font-bold hover:bg-black hover:text-white"
+            <div className="rounded-xl border border-line bg-surface/60 p-4 text-center">
+              <p className="font-sans text-sm font-bold">
+                Questions about this product?
+              </p>
+              <Button
+                href={askHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary"
+                labelCase="none"
+                className="mt-3 w-full gap-2"
               >
-                &minus;
-              </button>
-              <span className="flex h-11 w-12 items-center justify-center border-x border-line font-mono">
-                {qty}
-              </span>
-              <button
-                type="button"
-                aria-label="Increase quantity"
-                disabled={qty >= maxQty}
-                onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-                className="h-11 w-11 text-xl font-bold hover:bg-black hover:text-white disabled:text-black/25 disabled:hover:bg-transparent disabled:hover:text-black/25"
-              >
-                +
-              </button>
+                <MessagesIcon size={18} />
+                Chat to OCNOO
+              </Button>
             </div>
           </div>
+        </aside>
 
-          {product.specs && product.specs.length > 0 && (
-            <section className="md:hidden">
-              <h2 className="pb-1 font-sans text-sm font-bold uppercase tracking-wide">
-                About this product
-              </h2>
-              <SpecTable rows={product.specs} />
-            </section>
-          )}
-
-          {/* Desktop / tablet action (mobile uses the sticky bar) */}
-          <div className="hidden gap-3 pt-4 md:flex">
-            <Button
-              variant="primary"
-              disabled={!product.inStock}
-              onClick={handleAdd}
-            >
-              {added ? "Added \u2713" : "Add to Cart"}
-            </Button>
-            <WhatsAppButton label="Chat to Order" />
-          </div>
+        {/* ---- Row 2: the long content, under the two upper columns ---- */}
+        <div className="lg:col-span-2 lg:col-start-1 lg:row-start-2">
+          <ProductDeepDive extras={extras} />
         </div>
       </div>
 

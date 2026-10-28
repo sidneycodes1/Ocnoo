@@ -29,7 +29,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
+# `.env*.local` alone left a plain `.env` committable, and this repo has a live
+# GitHub remote - one hand-named `.env` would have pushed the database keys with
+# it. Ignore every variant and un-ignore only the documented template.
+.env*
+!.env.example
 
 # vercel
 .vercel

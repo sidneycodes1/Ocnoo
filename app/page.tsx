@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { categories } from "@/data/categories";
-import { COLLECTIONS, JUST_IN, POPULAR } from "@/data/collections";
+import { COLLECTION_META } from "@/data/collectionMeta";
+import { getPublishedProducts, resolveCollection } from "@/lib/catalog";
 import ProductWall from "@/components/sections/ProductWall";
 import CategoryStrip from "@/components/sections/CategoryStrip";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Card from "@/components/ui/Card";
 
 // Every home row and the page behind its "More >" link come out of
-// data/collections, so the two can never drift apart into different products.
+// COLLECTION_META, so the two can never drift apart into different products.
 const collectionHref = (key: string) => `/collections/${key}`;
 
 /**
@@ -52,7 +53,15 @@ function CategoryGrid() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  // One read of the shared catalogue; every row below is a different ordering
+  // of the same list, so a product published in the admin appears wherever it
+  // ranks without a redeploy.
+  const products = await getPublishedProducts();
+  const collections = COLLECTION_META.map((meta) => resolveCollection(products, meta));
+  const popular = collections.find((collection) => collection.key === "popular-right-now");
+  const justIn = collections.find((collection) => collection.key === "just-in");
+
   return (
     <div className="mx-auto max-w-6xl animate-fade-in px-4 py-8 md:py-12">
       {/* The hero block was removed, so the page keeps a screen-reader-only h1
@@ -64,7 +73,7 @@ export default function HomePage() {
       <div className="md:hidden">
         <CategoryStrip />
         <div className="flex flex-col gap-8">
-          {COLLECTIONS.map((collection) => (
+          {collections.map((collection) => (
             <ProductWall
               key={collection.key}
               title={collection.title}
@@ -81,18 +90,22 @@ export default function HomePage() {
       <div className="hidden md:block">
         <div className="flex flex-col gap-12">
           <CategoryGrid />
-          <ProductWall
-            title={POPULAR.title}
-            products={POPULAR.home}
-            moreHref={collectionHref(POPULAR.key)}
-            wall="desktop"
-          />
-          <ProductWall
-            title={JUST_IN.title}
-            products={JUST_IN.home}
-            moreHref={collectionHref(JUST_IN.key)}
-            wall="desktop"
-          />
+          {popular && (
+            <ProductWall
+              title={popular.title}
+              products={popular.home}
+              moreHref={collectionHref(popular.key)}
+              wall="desktop"
+            />
+          )}
+          {justIn && (
+            <ProductWall
+              title={justIn.title}
+              products={justIn.home}
+              moreHref={collectionHref(justIn.key)}
+              wall="desktop"
+            />
+          )}
         </div>
       </div>
     </div>

@@ -6,46 +6,82 @@
   body {
     @apply bg-page text-black font-sans antialiased;
   }
-}
 
-/*
- * Height of the sticky header, per breakpoint — mobile 57px (min-h-[56px] plus
- * the 1px bottom border), desktop 122px.
- *
- * Three things must agree on this number and all three read it from here:
- * a policy section's `scroll-margin-top` (so an anchor jump does not bury the
- * heading under the header), the sticky contents rail's `top`, and the
- * scroll-spy in components/pages/PolicyContents.tsx, which parses this property
- * instead of carrying its own copy. If the header changes height, change this
- * and nothing else.
- */
-:root {
-  --policy-stack: 57px;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --policy-stack: 122px;
+  /* Anchor jumps glide instead of snapping. Gated on prefers-reduced-motion,
+     so a visitor who has asked for less movement still gets an instant jump.
+     This is what makes the product page's section tabs and the policy contents
+     index scroll without either of them calling scrollIntoView itself. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
 
 /*
- * Plain CSS rather than Tailwind utilities: these are only used by the policy
+ * Height of the sticky header, per breakpoint — mobile 57px (min-h-[56px] plus
+ * the 1px bottom border), desktop 77px (12px padding x2 + the 52px icon cluster
+ * + the 1px bottom border).
+ *
+ * Three things must agree on this number and all three read it from here:
+ * an anchored section's `scroll-margin-top` (so an anchor jump does not bury
+ * the heading under the header), any sticky rail's `top`, and the scroll-spy in
+ * components/pages/PolicyContents.tsx, which parses this property instead of
+ * carrying its own copy. If the header changes height, change this and nothing
+ * else. It went from 122px to 77px when the desktop nav row under the header
+ * was removed — the policy pages and the product rail both followed for free.
+ */
+:root {
+  --header-stack: 57px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-stack: 77px;
+  }
+}
+
+/*
+ * Plain CSS rather than Tailwind utilities: these are only used by a couple of
  * routes, and Next's dev-mode Tailwind rebuild derives its candidate list from
  * the module graph of the route currently being compiled, so a utility that
  * appears only on a lazily-visited route can be missing from the sheet.
  */
-.policy-section {
-  scroll-margin-top: calc(var(--policy-stack) + 1rem);
+.stack-anchor {
+  scroll-margin-top: calc(var(--header-stack) + 1rem);
 }
 
-.policy-contents {
+/* Pin a column under the sticky header. Used by the product page's right rail,
+   which is short enough that it never needs to scroll on its own. */
+.stack-pin {
   position: sticky;
-  top: calc(var(--policy-stack) + 1.5rem);
-  /* A 17-link index is taller than a laptop viewport, so the rail scrolls on
+  top: calc(var(--header-stack) + 1.5rem);
+}
+
+/* Pin AND give the column its own scroll, for a rail long enough to overflow a
+   laptop viewport (the policy contents index). */
+.stack-rail {
+  position: sticky;
+  top: calc(var(--header-stack) + 1.5rem);
+  /* A long index is taller than a laptop viewport, so the rail scrolls on
      its own rather than pushing the last links off screen. */
-  max-height: calc(100vh - var(--policy-stack) - 3rem);
+  max-height: calc(100vh - var(--header-stack) - 3rem);
   overflow-y: auto;
+}
+
+/*
+ * The product page's right rail. Only pinned from `lg` up, because that is the
+ * width where the three-column layout exists: below it the rail is a stacked
+ * block in the reading order, and the fixed action bar at the bottom of the
+ * screen is already the persistent control. A media query rather than a
+ * `lg:` variant, because these are plain CSS classes — Tailwind cannot prefix a
+ * utility it did not generate.
+ */
+@media (min-width: 1024px) {
+  .pdp-rail {
+    position: sticky;
+    top: calc(var(--header-stack) + 1.5rem);
+  }
 }
 
 @layer utilities {

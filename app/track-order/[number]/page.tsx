@@ -1,71 +1,75 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { useOrders, CANCELLABLE } from "@/context/OrdersContext";
+import { canCustomerCancel, getOrderByToken } from "@/lib/orders";
 import { formatNaira } from "@/lib/utils";
-import { longDate, statusNote, totalQuantity } from "@/lib/orderStatus";
+import { longDate, PAYMENT_LABEL, paymentNote, statusNote, totalQuantity } from "@/lib/orderStatus";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import StatusChip from "@/components/order/StatusChip";
+import CancelOrderPanel from "@/components/order/CancelOrderPanel";
 import ContactMenu from "@/components/layout/ContactMenu";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
-function NotFound({ number }: { number: string }) {
+// The order is read per request with the browser's token, so a status the shop
+// changed a second ago is the one on the page - and no cache can pin an old
+// status to a shared URL.
+export const dynamic = "force-dynamic";
+
+/**
+ * Two ways to arrive without an order: a link that lost its `?t=` key, and a
+ * link whose key does not match the number. They get different copy because
+ * the fixes are different - one is "use the form again", the other is "your
+ * link is broken".
+ */
+function MissingOrder({ number, hadToken }: { number: string; hadToken: boolean }) {
   return (
     <Card bordered className="flex flex-col gap-4 p-6">
       <p className="font-sans text-lg font-bold">
-        We can&apos;t find {number || "that order"} on this device.
+        {hadToken
+          ? `We can't find order ${number}.`
+          : "This tracking link is missing its private key."}
       </p>
       <p className="font-sans text-sm leading-relaxed text-black/60">
-        Orders are saved in the browser they were placed in, and this demo has no
-        account system that could carry them across devices. If you placed it
-        somewhere else, it will not appear here.
+        {hadToken
+          ? "The link may be incomplete, or it belongs to a different order number. Open the order again with your order number and the phone number you used at checkout."
+          : "Order links carry a private key so that a guessed order number cannot open someone else's address. Enter your order number and phone number on the tracking page to get a working link."}
       </p>
       <Button href="/track-order" variant="primary" className="self-start">
-        Back to your orders
+        Track an order
       </Button>
     </Card>
   );
 }
 
-export default function OrderDetailPage({ params }: { params: { number: string } }) {
-  const { orders, hydrated, cancelOrder } = useOrders();
-  const [confirming, setConfirming] = useState(false);
-  const [failed, setFailed] = useState(false);
+export default async function OrderDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { number: string };
+  searchParams: { t?: string };
+}) {
+  const number = decodeURIComponent(params.number).trim();
+  const token = (searchParams.t ?? "").trim();
+  const order = token ? await getOrderByToken(number, token) : null;
 
-  if (!hydrated) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center font-sans">
-        Loading your order…
-      </div>
-    );
-  }
-
-  const wanted = decodeURIComponent(params.number).trim().toLowerCase();
-  const order = orders.find((o) => o.orderNumber.toLowerCase() === wanted);
   if (!order) {
     return (
       <div className="mx-auto max-w-2xl animate-fade-in px-4 pb-8 pt-3 md:py-8">
         <h1 className="sr-only font-sans text-3xl font-extrabold uppercase tracking-tight md:not-sr-only">
           Order details
         </h1>
-        <NotFound number={params.number} />
+        <MissingOrder number={number} hadToken={token.length > 0} />
       </div>
     );
   }
 
-  const canCancel = CANCELLABLE.includes(order.status);
   const qty = totalQuantity(order);
-
-  // Hoisted function declarations do not inherit control-flow narrowing from
-  // the guard above, so the number is copied out while `order` is definite.
-  const orderNumber = order.orderNumber;
-
-  function onConfirmCancel() {
-    if (!cancelOrder(orderNumber)) setFailed(true);
-    setConfirming(false);
-  }
+  const canCancel = canCustomerCancel(order.status);
+  const orderPath = `/track-order/${encodeURIComponent(order.orderNumber)}`;
+  const here = `${orderPath}?t=${encodeURIComponent(token)}`;
+  // The query has to come after the path. Building this by appending to `here`
+  // produced `/track-order/OCN-48215?t=abc/history`, which is a different order
+  // number to the router and lands on "we can't find this order".
+  const historyHref = `${orderPath}/history?t=${encodeURIComponent(token)}`;
 
   return (
     <div className="mx-auto max-w-2xl animate-fade-in px-4 pb-8 pt-3 md:py-8">
@@ -99,9 +103,17 @@ export default function OrderDetailPage({ params }: { params: { number: string }
             {order.payment === "paystack" ? "Card (Paystack)" : "Bank transfer"}
           </p>
           <p className="font-sans text-sm leading-relaxed">{statusNote(order)}</p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-line px-2.5 py-1 font-sans text-[11px] font-bold uppercase tracking-wide">
+              {PAYMENT_LABEL[order.paymentStatus]}
+            </span>
+            <span className="font-sans text-[11px] text-black/55">{paymentNote(order)}</span>
+          </div>
           <p className="font-sans text-xs text-black/50">
-            This demo records the order on your device and takes no payment, so
-            the status does not advance on its own.
+            This is the shop&apos;s own record of your order. Reload after the
+            shop packs or dispatches it to see the next step — no payment was
+            taken.
           </p>
         </Card>
 
@@ -111,18 +123,18 @@ export default function OrderDetailPage({ params }: { params: { number: string }
           </h2>
           <Card bordered className="divide-y divide-line">
             <ul>
-              {order.lines.map((l, i) => (
+              {order.lines.map((line, i) => (
                 <li key={i} className="flex items-start justify-between gap-4 p-4">
                   <div className="min-w-0">
                     <p className="font-sans text-sm font-semibold leading-snug">
-                      {l.name}
+                      {line.name}
                     </p>
                     <p className="mt-1 font-sans text-xs text-black/50">
-                      Qty {l.quantity}
+                      Qty {line.quantity}
                     </p>
                   </div>
                   <p className="shrink-0 font-mono text-sm">
-                    {formatNaira(l.lineTotal)}
+                    {formatNaira(line.lineTotal)}
                   </p>
                 </li>
               ))}
@@ -133,9 +145,7 @@ export default function OrderDetailPage({ params }: { params: { number: string }
                 <dd className="font-mono">{formatNaira(order.subtotal)}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-black/60">
-                  Delivery · zone {order.zone}
-                </dt>
+                <dt className="text-black/60">Delivery · zone {order.zone}</dt>
                 <dd className="font-mono">{formatNaira(order.deliveryFee)}</dd>
               </div>
               <div className="flex justify-between gap-4 text-base font-bold">
@@ -153,69 +163,21 @@ export default function OrderDetailPage({ params }: { params: { number: string }
           <Card bordered className="p-4">
             <p className="font-sans text-sm font-semibold">{order.delivery.name}</p>
             <p className="mt-1 font-sans text-sm">{order.delivery.address}</p>
-            <p className="font-sans text-sm text-black/60">
-              {order.delivery.state}
-            </p>
+            <p className="font-sans text-sm text-black/60">{order.delivery.state}</p>
             <p className="mt-2 font-mono text-sm">{order.delivery.phone}</p>
           </Card>
         </section>
 
         <div className="flex flex-col gap-3">
-          <Button
-            href={`/track-order/${encodeURIComponent(orderNumber)}/history`}
-            variant="primary"
-            className="w-full"
-          >
+          <Button href={historyHref} variant="primary" className="w-full">
             Package history
           </Button>
 
-          {canCancel && !confirming && (
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => setConfirming(true)}
-            >
-              Cancel this order
-            </Button>
-          )}
-
-          {canCancel && confirming && (
-            <div
-              role="group"
-              aria-label="Confirm cancellation"
-              className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4"
-            >
-              <p className="font-sans text-sm font-semibold">
-                Cancel order {order.orderNumber}?
-              </p>
-              <p className="font-sans text-xs leading-relaxed text-black/60">
-                Nothing was charged, so there is nothing to refund. This cannot be
-                undone — you would need to place the order again.
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  className="min-w-0 flex-1"
-                  onClick={() => setConfirming(false)}
-                >
-                  Keep order
-                </Button>
-                <Button
-                  variant="primary"
-                  className="min-w-0 flex-1"
-                  onClick={onConfirmCancel}
-                >
-                  Yes, cancel it
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {failed && (
-            <p role="status" className="font-sans text-sm">
-              That order has moved on and can no longer be cancelled here.
-            </p>
-          )}
+          <CancelOrderPanel
+            orderNumber={order.orderNumber}
+            token={token}
+            canCancel={canCancel}
+          />
 
           {!canCancel && (
             <p className="font-sans text-xs leading-relaxed text-black/50">

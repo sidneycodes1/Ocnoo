@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Product } from "@/types";
 import Badge from "@/components/ui/Badge";
-import PriceTag from "@/components/ui/PriceTag";
+import ProductCardMeta from "@/components/product/ProductCardMeta";
 import SaveButton from "@/components/ui/SaveButton";
 import { CheckIcon, PlusIcon } from "@/components/ui/icons";
 import { useQuickAdd } from "@/components/product/useQuickAdd";
@@ -106,19 +106,16 @@ export default function ProductTile({
 
         {/* minHeight, not height: the reserved box is what the span was computed
             from, and a caption that ever needs more must grow visibly rather
-            than have its price clipped. */}
-        <div style={{ minHeight: plan.captionHeight, padding: plan.captionPadding }}>
-          <h3 className="line-clamp-2 font-sans text-sm font-bold leading-tight">
-            {product.name}
-          </h3>
-          <p className="mt-1">
-            <PriceTag
-              price={product.price}
-              oldPrice={product.oldPrice}
-              tone="shell"
-              size="sm"
-            />
-          </p>
+            than have its price clipped. The block itself is shared with the
+            desktop card, so the rating row cannot go missing on one surface.
+            `flex flex-col` is what lets that shared block's `mt-auto` actually
+            pin the price to the bottom of the reserve — without a flex parent
+            the reserve just pooled underneath it as up to 55px of dead card. */}
+        <div
+          style={{ minHeight: plan.captionHeight, padding: plan.captionPadding }}
+          className="flex flex-col"
+        >
+          <ProductCardMeta product={product} size="sm" />
         </div>
       </Link>
     </li>

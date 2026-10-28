@@ -5,7 +5,8 @@ import ShopBrowser from "@/components/product/ShopBrowser";
 import YourListings from "@/components/listing/YourListings";
 import CategoryList from "@/components/sections/CategoryList";
 import SearchPill from "@/components/forms/SearchPill";
-import { getBrandBySlug } from "@/data/brands";
+import { getPublishedProducts } from "@/lib/catalog";
+import { getBrandBySlug } from "@/lib/brands";
 import { isSortKey } from "@/lib/sort";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
@@ -17,11 +18,12 @@ interface Props {
   searchParams: { q?: string; sort?: string; brand?: string; view?: string };
 }
 
-export default function ShopPage({ searchParams }: Props) {
+export default async function ShopPage({ searchParams }: Props) {
+  const products = await getPublishedProducts();
   const q = (searchParams.q ?? "").trim();
   const sortKey = isSortKey(searchParams.sort) ? searchParams.sort : "relevance";
   const brandSlug = (searchParams.brand ?? "").trim();
-  const brandName = brandSlug ? getBrandBySlug(brandSlug)?.name : undefined;
+  const brandName = brandSlug ? getBrandBySlug(products, brandSlug)?.name : undefined;
   const brand = brandName ? brandSlug : undefined;
   const showAll = searchParams.view === "all";
 
@@ -75,7 +77,7 @@ export default function ShopPage({ searchParams }: Props) {
             heads rather than announcing an empty section on mobile. The result
             cards title themselves with <h3>. */}
         <h2 className="sr-only">Products</h2>
-        <ShopBrowser query={q} sort={sortKey} brand={brand} />
+        <ShopBrowser products={products} query={q} sort={sortKey} brand={brand} />
       </div>
 
       {listingCategories && (
@@ -90,7 +92,7 @@ export default function ShopPage({ searchParams }: Props) {
           >
             <SearchPill submitTo="/shop" className="mb-4 w-full" />
           </Suspense>
-          <CategoryList />
+          <CategoryList products={products} />
         </div>
       )}
     </div>

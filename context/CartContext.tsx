@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "@/types";
-import { getProductById } from "@/data/products";
+import { useCatalog } from "@/context/CatalogProvider";
+import { trackEvent } from "@/lib/events";
 
 export interface CartItem {
   productId: string;
@@ -39,24 +40,27 @@ const STORAGE_KEY = "ocnoo-cart";
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { getProduct } = useCatalog();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   // Load once from localStorage on the client (no-op on the server).
+  // Ids that are no longer published are dropped here rather than rendered as
+  // an empty row — the catalogue is the authority on what still exists.
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as CartItem[];
         if (Array.isArray(parsed)) {
-          setItems(parsed.filter((i) => getProductById(i.productId)));
+          setItems(parsed.filter((i) => getProduct(i.productId)));
         }
       }
     } catch {
       /* ignore malformed storage */
     }
     setHydrated(true);
-  }, []);
+  }, [getProduct]);
 
   // Persist whenever items change (after hydration to avoid clobbering).
   useEffect(() => {
@@ -68,20 +72,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, hydrated]);
 
-  const addItem = useCallback((productId: string, quantity = 1) => {
-    if (!getProductById(productId)) return;
-    setItems((prev) => {
-      const existing = prev.find((i) => i.productId === productId);
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === productId
-            ? { ...i, quantity: Math.max(1, i.quantity + quantity) }
-            : i
-        );
-      }
-      return [...prev, { productId, quantity: Math.max(1, quantity) }];
-    });
-  }, []);
+  const addItem = useCallback(
+    (productId: string, quantity = 1) => {
+      if (!getProduct(productId)) return;
+      setItems((prev) => {
+        const existing = prev.find((i) => i.productId === productId);
+        if (existing) {
+          return prev.map((i) =>
+            i.productId === productId
+              ? { ...i, quantity: Math.max(1, i.quantity + quantity) }
+              : i
+          );
+        }
+        return [...prev, { productId, quantity: Math.max(1, quantity) }];
+      });
+      // Every add path - card quick-add, buy box, sticky card - comes through
+      // here, so the counter cannot miss one and does not need five call sites.
+      trackEvent("add_to_cart", { productId });
+    },
+    [getProduct]
+  );
 
   const removeItem = useCallback((productId: string) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
@@ -102,7 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const lines = useMemo<CartLine[]>(() => {
     return items
       .map((i) => {
-        const product = getProductById(i.productId);
+        const product = getProduct(i.productId);
         if (!product) return null;
         return {
           product,
@@ -111,7 +121,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         };
       })
       .filter((l): l is CartLine => l !== null);
-  }, [items]);
+  }, [items, getProduct]);
 
   const count = useMemo(() => lines.reduce((n, l) => n + l.quantity, 0), [lines]);
   const subtotal = useMemo(

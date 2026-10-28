@@ -82,9 +82,9 @@ export default function PolicyPage({ policy }: { policy: Policy }) {
   return (
     <div className="mx-auto max-w-6xl animate-fade-in px-4 pb-10">
       <div className="xl:grid xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-12">
-        {/* Desktop: sticky section index. `policy-contents` lives in
-            globals.css and pins `top`/`max-height` to the sticky header. */}
-        <aside className="policy-contents hidden xl:block">
+        {/* Desktop: sticky section index. `stack-rail` lives in globals.css and
+            pins `top`/`max-height` to the sticky header. */}
+        <aside className="stack-rail hidden xl:block">
           <PolicyContents items={items} variant="rail" />
         </aside>
 
@@ -137,7 +137,7 @@ export default function PolicyPage({ policy }: { policy: Policy }) {
               <section
                 key={section.id}
                 id={section.id}
-                className="policy-section border-b border-line pb-7 pt-6"
+                className="stack-anchor border-b border-line pb-7 pt-6"
               >
                 <h2 className="font-sans text-base font-extrabold tracking-tight md:text-lg">
                   {section.heading}

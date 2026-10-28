@@ -1,9 +1,17 @@
 ﻿import type { Product } from "@/types";
 
-// Demo-only "backend": all product data lives here as typed static files.
-// Image paths are placeholders — real photos get added later.
+// The offline fallback for lib/catalog.ts: if Supabase is unconfigured (local
+// dev without env vars) or unreachable (a paused free-tier project), the shop
+// still renders a full catalogue instead of an empty grid. The live catalogue
+// lives in Postgres and nothing imports these rows directly any more.
+//
 // Ratings, review counts and compare-at prices are DEMO VALUES, not real
 // market data; replace them with genuine listings before launch.
+//
+// `images` is empty on purpose. Photos come from Supabase Storage, and the
+// seeded rows in supabase/seed.sql carry `[]` too, so the fallback catalogue
+// shows the same placeholder frame as an unphotographed product in the panel
+// instead of pointing at files that are not in the repo.
 export const products: Product[] = [
   // Computers & Phones
   {
@@ -430,32 +438,3 @@ export const products: Product[] = [
     ],
   },
 ];
-
-export function getProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.slug === slug);
-}
-
-export function getProductById(id: string): Product | undefined {
-  return products.find((p) => p.id === id);
-}
-
-export function getProductsByCategory(categorySlug: string): Product[] {
-  return products.filter((p) => p.category === categorySlug);
-}
-
-/**
- * Item count per category slug. Every "N items" line in the category tiles and
- * list reads from here, so no count is ever typed by hand and drifts from the
- * catalogue.
- */
-export function countProductsByCategory(): Record<string, number> {
-  return products.reduce<Record<string, number>>((counts, p) => {
-    counts[p.category] = (counts[p.category] ?? 0) + 1;
-    return counts;
-  }, {});
-}
-
-/** Products carrying a compare-at price — powers the mobile "Deals" row. */
-export function getDealProducts(): Product[] {
-  return products.filter((p) => p.oldPrice !== undefined && p.inStock);
-}

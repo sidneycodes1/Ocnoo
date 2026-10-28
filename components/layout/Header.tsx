@@ -11,8 +11,10 @@ import { CartIcon, MenuIcon } from "@/components/ui/icons";
 // so it is gone rather than kept for looks.
 // "Categories" and "Sell" are the words the mobile tab bar already uses for
 // these same two hrefs, so the two breakpoints now name them identically.
-// Wholesale and Contact are no longer primary nav: they stay in the footer and
-// in the Menu panel, which is where a desktop visitor now looks for the rest.
+// Wholesale and Contact are not here: they stay in the footer.
+// These are the browse rows of the Menu panel. Desktop has no visible link row
+// of its own any more - the logo carries the way home, search carries the way
+// to /shop, and everything else opens from Menu.
 const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Categories", href: "/shop" },
@@ -199,7 +201,12 @@ export default function Header() {
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-50">
+    // Owns its own breakpoint (`hidden md:block`) rather than being wrapped in
+    // one, because a sticky element only travels inside its containing block —
+    // and a wrapper div that is nothing but this header is exactly as tall as
+    // it is, which silently made the desktop header scroll away. MobileHeader
+    // has always carried its own `md:hidden` for the same reason.
+    <header className="sticky top-0 z-50 hidden md:block">
       {/* ---- Main bar: identity, search, account cluster ---- */}
       <div className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-4 py-3">
@@ -220,12 +227,12 @@ export default function Header() {
               search→cluster gaps stay equal without a dead-air pocket. */}
           <SearchBarSlot className="hidden w-full max-w-2xl md:block" />
 
-          {/* This whole component is mounted inside a `hidden md:block` wrapper
-              and MobileHeader owns the small screens, so nothing here needs a
-              responsive class: at md+ the cluster is the cart you act on and the
-              Menu that holds everything else. Saved and Account used to sit here
-              as icons; they are now rows inside the panel. Both 68x52, so the bar
-              stays 122px tall exactly as it was with three items. */}
+          {/* This whole header is `hidden md:block` and MobileHeader owns the
+              small screens, so nothing here needs a responsive class: at md+ the
+              cluster is the cart you act on and the Menu that holds everything
+              else. Saved and Account used to sit here as icons; they are now rows
+              inside the panel. Both 68x52, so the bar stays 77px tall exactly as
+              it was with three items. */}
           <div className="relative flex shrink-0 items-center gap-1">
             <HeaderLink
               href="/cart"
@@ -297,35 +304,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* The primary links stay visible on desktop - hiding them all behind
-            one click is what makes a shop hard to browse - and the Menu button
-            beside the cart opens the rest. Mobile navigation is the tab bar,
-            which lives outside this component. */}
-        <nav aria-label="Main" className="border-t border-line">
-          <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4">
-            {NAV_LINKS.map((link) => {
-              const active = isActive(pathname, link.href);
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    aria-current={active ? "page" : undefined}
-                    className={
-                      "inline-flex min-h-[44px] items-center border-b-2 px-3 font-sans text-sm font-bold uppercase tracking-wide transition-colors " +
-                      (active
-                        ? "border-primary text-black"
-                        : "border-transparent text-black/70 hover:border-black/30 hover:text-black") +
-                      " " +
-                      FOCUS_RING
-                    }
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
       </div>
     </header>
   );

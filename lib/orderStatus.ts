@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "@/context/OrdersContext";
+import type { Order, OrderStatus, PaymentStatus } from "@/context/OrdersContext";
 
 /**
  * One place that decides what an order's status means in words, so the order
@@ -84,6 +84,36 @@ export function statusNote(order: Order): string {
 /** Units across all lines - an order of 3 x one item is "3 items", not "1". */
 export function totalQuantity(order: Order): number {
   return order.lines.reduce((n, l) => n + l.quantity, 0);
+}
+
+export const PAYMENT_LABEL: Record<PaymentStatus, string> = {
+  awaiting: "Awaiting payment",
+  claimed: "Payment declared",
+  confirmed: "Payment confirmed",
+};
+
+/**
+ * One honest line about the money, kept apart from the parcel's ladder because
+ * they answer different questions. A declared transfer is not a paid one until
+ * the shop has seen the funds, and the wording never lets those two blur
+ * together - the shop's whole protection against a screenshot is that the
+ * customer's own claim is labelled a claim.
+ */
+export function paymentNote(order: Order): string {
+  if (order.status === "cancelled") return "Nothing was charged.";
+  if (order.payment === "paystack") {
+    return order.paymentStatus === "confirmed"
+      ? "Card payment confirmed."
+      : "Card payment not completed — this demo takes no payment.";
+  }
+  switch (order.paymentStatus) {
+    case "confirmed":
+      return "The shop has verified your transfer.";
+    case "claimed":
+      return "You told us the transfer is on its way. The shop is checking the funds.";
+    default:
+      return "No transfer has been declared for this order yet.";
+  }
 }
 
 /**

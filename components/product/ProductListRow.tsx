@@ -1,7 +1,7 @@
 import type { Product } from "@/types";
 import Link from "next/link";
 import { getCategoryBySlug } from "@/data/categories";
-import PlaceholderImage from "@/components/ui/PlaceholderImage";
+import ProductImage from "@/components/product/ProductImage";
 import PriceTag from "@/components/ui/PriceTag";
 import Rating from "@/components/ui/Rating";
 import SaveButton from "@/components/ui/SaveButton";
@@ -52,9 +52,12 @@ export default function ProductListRow({
           showSave ? "pr-14" : ""
         } ${divider ? "border-b border-line" : ""}`}
       >
-        <PlaceholderImage
+        <ProductImage
+          paths={product.images}
+          alt={product.name}
+          variant="thumb"
           iconSize={26}
-          className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface"
+          className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-line bg-surface"
         />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="line-clamp-2 font-sans text-sm font-semibold leading-snug">
