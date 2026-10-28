@@ -72,12 +72,21 @@ no sub-directory configuration.
    creates no auth users of its own. Leaving sign-ups open means anyone can register with the
    public anon key and read every order.
 
-4. **Order email** (optional). `vercel.json` registers a cron that calls
-   `/api/worker/outbox` every ten minutes; the worker drains `public.email_outbox` through
-   Brevo. Rows are queued by the SQL order functions inside the same transaction as the order,
-   so an unconfigured worker loses nothing — it just holds the mail until it is configured.
-   Vercel's Hobby plan runs one cron schedule; a manual `curl` with
-   `Authorization: Bearer $CRON_SECRET` flushes the queue on demand.
+4. **Order email** (optional). `vercel.json` registers a cron that calls `/api/worker/outbox`
+   at 03:00 UTC daily, and the worker drains `public.email_outbox` through Brevo. Rows are
+   queued by the SQL order functions inside the same transaction as the order, so an
+   unconfigured or slow worker loses nothing — it just holds the mail until it runs.
+
+   **The schedule is daily because Vercel's Hobby plan rejects any cron that fires more than
+   once a day** — a `*/10 * * * *` expression fails the whole build, not just the cron.
+   A receipt sitting in the queue until 03:00 is not acceptable for a real store, so pick one:
+
+   - **Upgrade to Pro** and set the schedule back to `*/10 * * * *`.
+   - **Free and immediate:** a GitHub Actions workflow on this repo calls the same endpoint
+     every few minutes. It needs `CRON_SECRET` stored as a repository secret and sent as
+     `Authorization: Bearer …`.
+   - **On demand:** `curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/worker/outbox`
+     flushes the queue in one request, which is enough while this is still a demo.
 
 5. Deploy, then walk the demo script below against the live URL.
 
