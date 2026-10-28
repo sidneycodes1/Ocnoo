@@ -55,7 +55,11 @@ export default function Footer() {
             stretched to the brand column's height, so the link lists float in a
             taller box than their own content and the leftover space is spread
             invisibly instead of reading as one empty band under the links. */}
-        <div className="mx-auto grid max-w-6xl grid-cols-2 items-start gap-10 px-4 py-10 lg:grid-cols-4">
+        {/* The brand column gets a wider track at lg rather than a quarter of
+            the row: "FOLLOW US" plus three 44px circles needs about 257px, and
+            an even quarter of a 1152px container leaves ~250px - close enough
+            that the icon row drops to its own line. 1.4fr makes it ~318px. */}
+        <div className="mx-auto grid max-w-6xl grid-cols-2 items-start gap-10 px-4 py-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
             <span className="font-sans text-2xl font-extrabold uppercase tracking-tight text-on-dark">
               OCNOO
@@ -70,11 +74,17 @@ export default function Footer() {
                 58px taller than the link columns is what made the empty band
                 under them so wide — the row height is set by the tallest
                 column. */}
-            <div className="flex items-center gap-4">
-              <p className="font-sans text-sm font-extrabold uppercase tracking-wide text-on-dark">
+            {/* The label was wrapping to "FOLLOW / US" because flex was willing
+                to squeeze it to its longest word while the icon row kept its
+                full intrinsic width. `shrink-0 whitespace-nowrap` on both sides
+                makes each element unbreakable, and `flex-wrap` means the pair
+                drops to a second line as a unit when the column is genuinely
+                too narrow, instead of mangling the words. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+              <p className="shrink-0 whitespace-nowrap font-sans text-sm font-extrabold uppercase tracking-wide text-on-dark">
                 Follow us
               </p>
-              <ul className="flex items-center gap-3">
+              <ul className="flex shrink-0 items-center gap-3">
                 {SOCIALS.map((social) => (
                   <li key={social.label}>
                     <a

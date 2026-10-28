@@ -172,11 +172,6 @@ export default function PolicyPage({ policy }: { policy: Policy }) {
             </a>
           </p>
 
-          <p className="mt-8 rounded-md bg-surface p-4 font-sans text-sm text-black/60">
-            {policy.placeholder
-              ? "This is placeholder demo copy for a design mockup — not real legal advice. Replace it with reviewed, business-specific text before launch."
-              : "This page reproduces the policy text supplied by King Ocnoo Computer Ventures. The store itself is a design demo, so have the wording reviewed before it is published as a live policy."}
-          </p>
         </article>
       </div>
     </div>

@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import type { Product } from "@/types";
 import Badge from "@/components/ui/Badge";
 import ProductCardMeta from "@/components/product/ProductCardMeta";
+import ProductImage from "@/components/product/ProductImage";
 import SaveButton from "@/components/ui/SaveButton";
 import { CheckIcon, PlusIcon } from "@/components/ui/icons";
 import { useQuickAdd } from "@/components/product/useQuickAdd";
@@ -80,28 +81,20 @@ export default function ProductTile({
         aria-label={product.name}
         className="flex flex-col"
       >
-        <div
-          style={imageStyle}
-          className="flex items-center justify-center overflow-hidden bg-surface"
-        >
-          <div className="flex flex-col items-center gap-2 text-black">
-            <svg
-              width={geometry.placeholderSize}
-              height={geometry.placeholderSize}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
-            >
-              <rect x="3" y="3" width="18" height="18" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-            <span className="font-sans text-[10px] uppercase tracking-[0.2em]">
-              Photo coming
-            </span>
-          </div>
+        {/* The same helper the desktop card uses. This block used to draw a
+            hardcoded "Photo coming" glyph, so a listing with four real photos
+            still showed the placeholder - the tile never looked at
+            `product.images`. The box keeps its computed height so the row-span
+            arithmetic above stays exact whether or not a photo resolves. */}
+        <div style={imageStyle} className="overflow-hidden bg-surface">
+          <ProductImage
+            paths={product.images}
+            alt={product.name}
+            variant="thumb"
+            className="h-full w-full bg-surface"
+            iconSize={geometry.placeholderSize}
+            label="Photo coming"
+          />
         </div>
 
         {/* minHeight, not height: the reserved box is what the span was computed
