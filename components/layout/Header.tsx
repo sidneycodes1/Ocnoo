@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { CartIcon, MenuIcon } from "@/components/ui/icons";
+import { AccountIcon, CartIcon, MenuIcon } from "@/components/ui/icons";
 
 // Real destinations only. The old list carried a "Deals" entry pointing at
 // /shop - the same href as "Shop" - which was a link to nowhere in particular,
@@ -122,22 +122,43 @@ function SearchBarSlot({ className = "" }: { className?: string }) {
 }
 
 // Icon-over-label cluster item, with a live count badge when there is one.
+// `active` is one colour class per state chosen by ternary, not an appended
+// `text-black`: Tailwind resolves by generated order, so an appended class can
+// silently lose to the base one - the same trap the Menu button documents.
 function HeaderLink({
   href,
   label,
   icon,
   count,
+  active = false,
 }: {
   href: string;
   label: string;
   icon: React.ReactNode;
   count?: number;
+  active?: boolean;
 }) {
+  // `count === 1` keeps the accessible name honest — the label used to read
+  // "Cart, 1 items" to a screen reader on every single-item cart.
+  const ariaLabel = count
+    ? `${label}, ${count} ${count === 1 ? "item" : "items"}`
+    : label;
+  // Active gets an accent bar, not just a colour change. At 70% → 100% opacity
+  // the active state was pixel-identical to `hover:text-black`, so pointing the
+  // mouse at an unrelated control made it look like the current page. The bar
+  // is absolutely positioned because a real child would add to the 52px box and
+  // grow the whole header row.
+  const activeBar = active
+    ? "after:absolute after:bottom-0 after:left-1/2 after:h-[3px] after:w-6 after:-translate-x-1/2 after:rounded-full after:bg-accent after:content-['']"
+    : "";
   return (
     <Link
       href={href}
-      aria-label={count ? `${label}, ${count} items` : label}
-      className={`flex min-h-[52px] w-[68px] flex-col items-center justify-center gap-1 text-black/70 transition-colors hover:text-black ${FOCUS_RING}`}
+      aria-current={active ? "page" : undefined}
+      aria-label={ariaLabel}
+      className={`relative flex min-h-[52px] w-[68px] flex-col items-center justify-center gap-1 transition-colors ${
+        active ? "text-black" : "text-black/70 hover:text-black"
+      } ${activeBar} ${FOCUS_RING}`}
     >
       <span className="relative">
         {icon}
@@ -228,21 +249,33 @@ export default function Header() {
           <SearchBarSlot className="hidden w-full max-w-2xl md:block" />
 
           {/* This whole header is `hidden md:block` and MobileHeader owns the
-              small screens, so nothing here needs a responsive class: at md+ the
-              cluster is the cart you act on and the Menu that holds everything
-              else. Saved and Account used to sit here as icons; they are now rows
-              inside the panel. Both 68x52, so the bar stays 77px tall exactly as
-              it was with three items. */}
+              small screens, so nothing here needs a responsive class.
+              Order is Account → Cart → Menu: Baymard's guideline #28 is that a
+              shopper looks for the account area in the upper-right and gives up
+              if it is not there, and the cart stays adjacent to the trailing
+              edge because it is the thing with a live count. Account points at
+              the same /account the mobile tab bar's "Profile" slot uses, so the
+              two breakpoints reach the same screen from the same glyph.
+              Saved Items, My Ads and Track Order stay as rows in the Menu
+              panel. Each item is 68x52, so the bar height does not move. */}
           <div className="relative flex shrink-0 items-center gap-1">
+            <HeaderLink
+              href="/account"
+              label="Account"
+              icon={<AccountIcon size={22} />}
+              active={isActive(pathname, "/account")}
+            />
             <HeaderLink
               href="/cart"
               label="Cart"
               icon={<CartIcon size={22} />}
               count={cartCount}
+              active={isActive(pathname, "/cart")}
             />
             <button
               type="button"
               aria-expanded={menuOpen}
+              aria-haspopup="true"
               aria-controls="desktop-menu"
               onClick={() => setMenuOpen((open) => !open)}
               // One colour class per state, chosen by ternary: appending
@@ -270,7 +303,12 @@ export default function Header() {
                 <nav
                   id="desktop-menu"
                   aria-label="More"
-                  className="absolute right-0 top-full z-50 w-[260px] rounded-xl border border-line bg-white p-2 shadow-lift"
+                  // `mt-[13px]` closes a real gap: `top-full` measures from the
+                  // cluster div, whose bottom sits 13px above the header's own
+                  // bottom edge (52px item + 12px top padding, against a 77px
+                  // bar). Without it the panel started inside the header and its
+                  // border and shadow cut a hole in the bar's bottom rule.
+                  className="absolute right-0 top-full z-50 mt-[13px] w-[260px] rounded-xl border border-line bg-white p-2 shadow-lift"
                 >
                   <p className="px-3 pb-1 pt-2 font-sans text-[11px] uppercase tracking-[0.2em] text-black/70">
                     Browse
